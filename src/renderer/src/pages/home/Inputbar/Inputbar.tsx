@@ -44,16 +44,18 @@ import MentionModelsButton from './MentionModelsButton'
 import MentionModelsInput from './MentionModelsInput'
 import SendMessageButton from './SendMessageButton'
 import TokenCount from './TokenCount'
+import DocAttachmentButton from './DocAttachmentButton'
 
 interface Props {
   assistant: Assistant
   setActiveTopic: (topic: Topic) => void
+  docFocusMode?: boolean
 }
 
 let _text = ''
 let _files: FileType[] = []
 
-const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic }) => {
+const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, docFocusMode }) => {
   const [text, setText] = useState(_text)
   const [inputFocus, setInputFocus] = useState(false)
   const { assistant, addTopic, model, setModel, updateAssistant } = useAssistant(_assistant.id)
@@ -248,22 +250,34 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic }) => {
     }
   }
 
-  const addNewTopic = useCallback(async () => {
-    await modelGenerating()
+  const addNewTopic = useCallback(
+    async (attachedFile?: FileType) => {
+      await modelGenerating()
 
-    const topic = getDefaultTopic(assistant.id)
+      let topic = getDefaultTopic(assistant.id)
+      if (attachedFile) {
+        topic = {
+          ...topic,
+          attachedFile
+        }
+      }
+      await db.topics.add({ id: topic.id, messages: [] })
+      await addAssistantMessagesToTopic({ assistant, topic })
 
-    await db.topics.add({ id: topic.id, messages: [] })
-    await addAssistantMessagesToTopic({ assistant, topic })
+      // Reset to assistant default model
+      assistant.defaultModel && setModel(assistant.defaultModel)
 
-    // Reset to assistant default model
-    assistant.defaultModel && setModel(assistant.defaultModel)
+      addTopic(topic)
+      setActiveTopic(topic)
 
-    addTopic(topic)
-    setActiveTopic(topic)
+      clickAssistantToShowTopic && setTimeout(() => EventEmitter.emit(EVENT_NAMES.SHOW_TOPIC_SIDEBAR), 0)
+    },
+    [addTopic, assistant, clickAssistantToShowTopic, setActiveTopic, setModel]
+  )
 
-    clickAssistantToShowTopic && setTimeout(() => EventEmitter.emit(EVENT_NAMES.SHOW_TOPIC_SIDEBAR), 0)
-  }, [addTopic, assistant, clickAssistantToShowTopic, setActiveTopic, setModel])
+  const onAttachDocCallback = (attachedFile: FileType) => {
+    addNewTopic(attachedFile)
+  }
 
   const clearTopic = async () => {
     if (generating) {
@@ -532,10 +546,13 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic }) => {
           <Toolbar>
             <ToolbarMenu>
               <Tooltip placement="top" title={t('chat.input.new_topic', { Command: newTopicShortcut })} arrow>
-                <ToolbarButton type="text" onClick={addNewTopic}>
+                <ToolbarButton type="text" onClick={() => addNewTopic()}>
                   <FormOutlined />
                 </ToolbarButton>
               </Tooltip>
+              {!docFocusMode && (
+                <DocAttachmentButton ToolbarButton={ToolbarButton} onSelectFileCallback={onAttachDocCallback} />
+              )}
               <MentionModelsButton
                 mentionModels={mentionModels}
                 onMentionModel={onMentionModel}

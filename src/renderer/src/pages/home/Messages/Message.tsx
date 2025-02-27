@@ -139,6 +139,8 @@ const MessageItem: FC<Props> = ({
             : topic.prompt
         }
 
+        // console.log('--- topic', topic, message, messages)
+
         fetchChatCompletion({
           message,
           messages: messages

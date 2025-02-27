@@ -90,6 +90,7 @@ export type Topic = {
   messages: Message[]
   pinned?: boolean
   prompt?: string
+  attachedFile?: FileType
 }
 
 export type User = {

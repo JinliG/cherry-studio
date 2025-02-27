@@ -9,6 +9,7 @@ import styled from 'styled-components'
 import Inputbar from './Inputbar/Inputbar'
 import Messages from './Messages/Messages'
 import Tabs from './Tabs'
+import PdfReader from './PdfReader'
 
 interface Props {
   assistant: Assistant
@@ -22,17 +23,26 @@ const Chat: FC<Props> = (props) => {
   const { topicPosition, messageStyle } = useSettings()
   const { showTopics } = useShowTopics()
 
+  const docFocusMode = !!props.activeTopic.attachedFile
+
   return (
     <Container id="chat" className={messageStyle}>
-      <Main id="chat-main" vertical flex={1} justify="space-between">
-        <Messages
-          key={props.activeTopic.id}
-          assistant={assistant}
-          topic={props.activeTopic}
-          setActiveTopic={props.setActiveTopic}
-        />
-        <Inputbar assistant={assistant} setActiveTopic={props.setActiveTopic} />
-      </Main>
+      <Wrapper>
+        {docFocusMode && (
+          <div className="pdf-container">
+            <PdfReader assistant={assistant} topic={props.activeTopic} />
+          </div>
+        )}
+        <Main id="chat-main" vertical flex={1} justify="space-between">
+          <Messages
+            key={props.activeTopic.id}
+            assistant={assistant}
+            topic={props.activeTopic}
+            setActiveTopic={props.setActiveTopic}
+          />
+          <Inputbar docFocusMode={docFocusMode} assistant={assistant} setActiveTopic={props.setActiveTopic} />
+        </Main>
+      </Wrapper>
       {topicPosition === 'right' && showTopics && (
         <Tabs
           activeAssistant={assistant}
@@ -52,6 +62,15 @@ const Container = styled.div`
   height: 100%;
   flex: 1;
   justify-content: space-between;
+`
+
+const Wrapper = styled(Flex)`
+  width: 100%;
+
+  .pdf-container {
+    width: 50%;
+    max-width: 50%;
+  }
 `
 
 const Main = styled(Flex)`
