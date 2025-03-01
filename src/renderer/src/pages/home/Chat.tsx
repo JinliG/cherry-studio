@@ -3,7 +3,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
 import { Assistant, Topic } from '@renderer/types'
 import { Flex } from 'antd'
-import { FC } from 'react'
+import { FC, useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
 
 import Inputbar from './Inputbar/Inputbar'
@@ -19,18 +19,78 @@ interface Props {
 }
 
 const Chat: FC<Props> = (props) => {
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const { assistant } = useAssistant(props.assistant.id)
   const { topicPosition, messageStyle } = useSettings()
   const { showTopics } = useShowTopics()
 
+  const [wrapperWidth, setWrapperWidth] = useState<number>(0)
+
   const docFocusMode = !!props.activeTopic.attachedFile
+
+  useEffect(() => {
+    const handleResize = () => {
+      console.log('--- wrapperRef.current', wrapperRef.current)
+      if (wrapperRef.current) {
+        setWrapperWidth(wrapperRef.current.offsetWidth)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleResize = (entries: ResizeObserverEntry[]) => {
+      for (let entry of entries) {
+        if (entry.contentBoxSize) {
+          // Firefox implements `contentBoxSize` as a single content rect, rather than an array
+          const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize
+          setWrapperWidth(contentBoxSize.inlineSize)
+        } else {
+          setWrapperWidth(entry.contentRect.width)
+        }
+      }
+    }
+
+    if (wrapperRef.current) {
+      const resizeObserver = new ResizeObserver(handleResize)
+      resizeObserver.observe(wrapperRef.current)
+
+      return () => {
+        if (wrapperRef.current) {
+          resizeObserver.unobserve(wrapperRef.current)
+        }
+      }
+    }
+  }, [wrapperRef])
+
+  const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 64 : 0), [wrapperWidth])
+  const maxWidth = useMemo(() => {
+    if (wrapperWidth) {
+      if (topicPosition === 'right') {
+        return wrapperWidth * 0.5
+      } else {
+        return wrapperWidth * 0.5 - 64
+      }
+    } else {
+      return 0
+    }
+  }, [wrapperWidth, topicPosition])
 
   return (
     <Container id="chat" className={messageStyle}>
-      <Wrapper>
+      <Wrapper ref={wrapperRef}>
         {docFocusMode && (
-          <div className="pdf-container">
-            <PdfReader assistant={assistant} topic={props.activeTopic} />
+          <div
+            className="pdf-container"
+            style={{
+              maxWidth
+            }}>
+            <PdfReader assistant={assistant} topic={props.activeTopic} pageWidth={pageWidth} />
           </div>
         )}
         <Main id="chat-main" vertical flex={1} justify="space-between">
@@ -69,7 +129,6 @@ const Wrapper = styled(Flex)`
 
   .pdf-container {
     width: 50%;
-    max-width: 50%;
   }
 `
 

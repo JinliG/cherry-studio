@@ -5,7 +5,7 @@ import styled from 'styled-components'
 
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
-import { Pagination } from 'antd'
+import { InputNumber, Pagination } from 'antd'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = {
@@ -16,10 +16,11 @@ const options = {
 interface Props {
   assistant: Assistant
   topic: Topic
+  pageWidth: number
 }
 
 const PdfReader: React.FC<Props> = (props) => {
-  const { topic, assistant } = props
+  const { topic, pageWidth, assistant } = props
 
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -27,21 +28,8 @@ const PdfReader: React.FC<Props> = (props) => {
   const [pageTotal, setPageTotal] = useState(0)
   const [pageCurrent, setPageCurrent] = useState(1)
   const [showPagination, setShowPagination] = useState(false)
-  const [containerWidth, setContainerWidth] = useState<number>(0)
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 24)
-      }
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [])
+  const [scale, setScale] = useState(1)
 
   useEffect(() => {
     const loadFile = async () => {
@@ -53,31 +41,6 @@ const PdfReader: React.FC<Props> = (props) => {
 
     loadFile()
   }, [topic.attachedFile])
-
-  useEffect(() => {
-    const handleResize = (entries: ResizeObserverEntry[]) => {
-      for (let entry of entries) {
-        if (entry.contentBoxSize) {
-          // Firefox implements `contentBoxSize` as a single content rect, rather than an array
-          const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize
-          setContainerWidth(contentBoxSize.inlineSize)
-        } else {
-          setContainerWidth(entry.contentRect.width)
-        }
-      }
-    }
-
-    if (containerRef.current) {
-      const resizeObserver = new ResizeObserver(handleResize)
-      resizeObserver.observe(containerRef.current)
-
-      return () => {
-        if (containerRef.current) {
-          resizeObserver.unobserve(containerRef.current)
-        }
-      }
-    }
-  }, [containerRef])
 
   const pdfFile = useMemo(() => {
     if (file) {
@@ -100,9 +63,12 @@ const PdfReader: React.FC<Props> = (props) => {
       onMouseLeave={() => {
         setShowPagination(false)
       }}>
+      <div>
+        <InputNumber min={0.1} max={5} value={scale} onChange={(value) => setScale(value || 1)} />
+      </div>
       {pdfFile && (
-        <Document className="pdf-reader" file={pdfFile} options={options} onLoadSuccess={onLoadSuccess}>
-          <Page pageNumber={pageCurrent} width={containerWidth} />
+        <Document className="document" file={pdfFile} options={options} onLoadSuccess={onLoadSuccess}>
+          <Page pageNumber={pageCurrent} width={pageWidth} scale={scale} />
         </Document>
       )}
       <Pagination
@@ -126,18 +92,13 @@ const Container = styled.div`
   border-right: 0.5px solid var(--color-border);
   overflow-y: auto;
 
-  .loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
   .pagination {
     z-index: 5;
-    position: sticky;
+    position: absolute;
+    right: 0;
+    left: 0;
+    // top: calc(100vh - 48px);
     bottom: 20px;
-    left: 50%;
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
 

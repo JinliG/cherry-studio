@@ -82,6 +82,10 @@ const Messages: FC<Props> = ({ assistant, topic, setActiveTopic }) => {
       }
 
       setMessages((prev) => {
+        if (topic.attachedFile) {
+          message.files ? message.files.push(topic.attachedFile) : (message.files = [topic.attachedFile])
+        }
+
         const messages = prev.concat([message, ...assistantMessages])
         db.topics.put({ id: topic.id, messages })
         return messages

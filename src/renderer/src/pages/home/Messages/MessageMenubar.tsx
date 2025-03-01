@@ -183,12 +183,12 @@ const MessageMenubar: FC<Props> = (props) => {
           window.api.file.save(fileName, message.content)
         }
       },
-      {
-        label: t('common.edit'),
-        key: 'edit',
-        icon: <EditOutlined />,
-        onClick: onEdit
-      },
+      // {
+      //   label: t('common.edit'),
+      //   key: 'edit',
+      //   icon: <EditOutlined />,
+      //   onClick: onEdit
+      // },
       {
         label: t('chat.message.new.branch'),
         key: 'new-branch',
@@ -232,13 +232,13 @@ const MessageMenubar: FC<Props> = (props) => {
 
   return (
     <MenusBar className={`menubar ${isLastMessage && 'show'}`}>
-      {message.role === 'user' && (
-        <Tooltip title={t('common.edit')} mouseEnterDelay={0.8}>
-          <ActionButton className="message-action-button" onClick={onEdit}>
-            <EditOutlined />
-          </ActionButton>
-        </Tooltip>
-      )}
+      {/* {message.role === 'user' && ( */}
+      <Tooltip title={t('common.edit')} mouseEnterDelay={0.8}>
+        <ActionButton className="message-action-button" onClick={onEdit}>
+          <EditOutlined />
+        </ActionButton>
+      </Tooltip>
+      {/* )} */}
       <Tooltip title={t('common.copy')} mouseEnterDelay={0.8}>
         <ActionButton className="message-action-button" onClick={onCopy}>
           {!copied && <i className="iconfont icon-copy"></i>}
