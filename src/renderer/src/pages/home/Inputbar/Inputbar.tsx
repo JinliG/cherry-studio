@@ -36,15 +36,16 @@ import { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useState } 
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
+import InputSuggestions from '../components/InputSuggestions'
 import NarrowLayout from '../Messages/NarrowLayout'
 import AttachmentButton from './AttachmentButton'
 import AttachmentPreview from './AttachmentPreview'
+import DocAttachmentButton from './DocAttachmentButton'
 import KnowledgeBaseButton from './KnowledgeBaseButton'
 import MentionModelsButton from './MentionModelsButton'
 import MentionModelsInput from './MentionModelsInput'
 import SendMessageButton from './SendMessageButton'
 import TokenCount from './TokenCount'
-import DocAttachmentButton from './DocAttachmentButton'
 
 interface Props {
   assistant: Assistant
@@ -509,6 +510,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, docFocusMo
 
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
+      <InputSuggestions />
       <NarrowLayout style={{ width: '100%' }}>
         <InputBarContainer
           id="inputbar"

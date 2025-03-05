@@ -1,11 +1,11 @@
-import { Assistant, Topic } from '@renderer/types'
-import React, { useMemo, useState, useEffect, useRef } from 'react'
-import { pdfjs, Document, Page } from 'react-pdf'
-import styled from 'styled-components'
-
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
-import { InputNumber, Pagination } from 'antd'
+
+import { Assistant, Topic } from '@renderer/types'
+import { Pagination } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Document, Page, pdfjs } from 'react-pdf'
+import styled from 'styled-components'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = {
@@ -20,16 +20,12 @@ interface Props {
 }
 
 const PdfReader: React.FC<Props> = (props) => {
-  const { topic, pageWidth, assistant } = props
-
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const { topic, pageWidth } = props
 
   const [file, setFile] = useState<File | null>(null)
   const [pageTotal, setPageTotal] = useState(0)
   const [pageCurrent, setPageCurrent] = useState(1)
   const [showPagination, setShowPagination] = useState(false)
-
-  const [scale, setScale] = useState(1)
 
   useEffect(() => {
     const loadFile = async () => {
@@ -56,19 +52,15 @@ const PdfReader: React.FC<Props> = (props) => {
 
   return (
     <Container
-      ref={containerRef}
       onMouseOver={() => {
         setShowPagination(true)
       }}
       onMouseLeave={() => {
         setShowPagination(false)
       }}>
-      <div>
-        <InputNumber min={0.1} max={5} value={scale} onChange={(value) => setScale(value || 1)} />
-      </div>
       {pdfFile && (
         <Document className="document" file={pdfFile} options={options} onLoadSuccess={onLoadSuccess}>
-          <Page pageNumber={pageCurrent} width={pageWidth} scale={scale} />
+          <Page pageNumber={pageCurrent} width={pageWidth} scale={1} />
         </Document>
       )}
       <Pagination

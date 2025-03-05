@@ -8,8 +8,8 @@ import styled from 'styled-components'
 
 import Inputbar from './Inputbar/Inputbar'
 import Messages from './Messages/Messages'
-import Tabs from './Tabs'
 import PdfReader from './PdfReader'
+import Tabs from './Tabs'
 
 interface Props {
   assistant: Assistant
@@ -30,7 +30,6 @@ const Chat: FC<Props> = (props) => {
 
   useEffect(() => {
     const handleResize = () => {
-      console.log('--- wrapperRef.current', wrapperRef.current)
       if (wrapperRef.current) {
         setWrapperWidth(wrapperRef.current.offsetWidth)
       }
@@ -45,7 +44,7 @@ const Chat: FC<Props> = (props) => {
 
   useEffect(() => {
     const handleResize = (entries: ResizeObserverEntry[]) => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         if (entry.contentBoxSize) {
           // Firefox implements `contentBoxSize` as a single content rect, rather than an array
           const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize
@@ -66,20 +65,9 @@ const Chat: FC<Props> = (props) => {
         }
       }
     }
-  }, [wrapperRef])
+  }, [wrapperRef.current])
 
-  const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 64 : 0), [wrapperWidth])
-  const maxWidth = useMemo(() => {
-    if (wrapperWidth) {
-      if (topicPosition === 'right') {
-        return wrapperWidth * 0.5
-      } else {
-        return wrapperWidth * 0.5 - 64
-      }
-    } else {
-      return 0
-    }
-  }, [wrapperWidth, topicPosition])
+  const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 56 : 0), [wrapperWidth])
 
   return (
     <Container id="chat" className={messageStyle}>
@@ -88,7 +76,7 @@ const Chat: FC<Props> = (props) => {
           <div
             className="pdf-container"
             style={{
-              maxWidth
+              width: pageWidth + 24
             }}>
             <PdfReader assistant={assistant} topic={props.activeTopic} pageWidth={pageWidth} />
           </div>
