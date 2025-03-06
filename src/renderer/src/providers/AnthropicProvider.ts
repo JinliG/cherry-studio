@@ -247,6 +247,25 @@ export default class AnthropicProvider extends BaseProvider {
     return message.content[0].type === 'text' ? message.content[0].text : ''
   }
 
+  public async generateSuggestions({ prompt, content }: { prompt: string; content: string }): Promise<string> {
+    const model = getDefaultModel()
+
+    const message = await this.sdk.messages.create({
+      model: model.id,
+      system: prompt,
+      stream: false,
+      max_tokens: 4096,
+      messages: [
+        {
+          role: 'user',
+          content
+        }
+      ]
+    })
+
+    return message.content[0].type === 'text' ? message.content[0].text : ''
+  }
+
   public async generateImage(): Promise<string[]> {
     return []
   }

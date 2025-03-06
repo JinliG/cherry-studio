@@ -88,7 +88,12 @@ const Chat: FC<Props> = (props) => {
             topic={props.activeTopic}
             setActiveTopic={props.setActiveTopic}
           />
-          <Inputbar docFocusMode={docFocusMode} assistant={assistant} setActiveTopic={props.setActiveTopic} />
+          <Inputbar
+            docFocusMode={docFocusMode}
+            assistant={assistant}
+            setActiveTopic={props.setActiveTopic}
+            activeTopic={props.activeTopic}
+          />
         </Main>
       </Wrapper>
       {topicPosition === 'right' && showTopics && (

@@ -387,6 +387,30 @@ export default class OpenAIProvider extends BaseProvider {
     return response.choices[0].message?.content || ''
   }
 
+  public async generateSuggestions({
+    assistant,
+    prompt,
+    content
+  }: {
+    prompt: string
+    content: string
+    assistant: Assistant
+  }): Promise<string> {
+    const defaultModel = getDefaultModel()
+    const model = assistant.model || defaultModel
+
+    const response = await this.sdk.chat.completions.create({
+      model: model.id,
+      stream: false,
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content }
+      ]
+    })
+
+    return response.choices[0].message?.content || ''
+  }
+
   async suggestions(messages: Message[], assistant: Assistant): Promise<Suggestion[]> {
     const model = assistant.model
 

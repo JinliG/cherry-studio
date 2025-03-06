@@ -49,14 +49,16 @@ import TokenCount from './TokenCount'
 
 interface Props {
   assistant: Assistant
+  activeTopic: Topic
   setActiveTopic: (topic: Topic) => void
   docFocusMode?: boolean
 }
 
+let _lastInputText = ''
 let _text = ''
 let _files: FileType[] = []
 
-const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, docFocusMode }) => {
+const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopic, docFocusMode }) => {
   const [text, setText] = useState(_text)
   const [inputFocus, setInputFocus] = useState(false)
   const { assistant, addTopic, model, setModel, updateAssistant } = useAssistant(_assistant.id)
@@ -104,6 +106,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, docFocusMo
   const cleanTopicShortcut = useShortcutDisplay('clear_topic')
   const inputEmpty = isEmpty(text.trim()) && files.length === 0
 
+  _lastInputText = text ? text : _lastInputText
   _text = text
   _files = files
 
@@ -510,7 +513,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, docFocusMo
 
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
-      <InputSuggestions />
+      <InputSuggestions lastInputText={_lastInputText} assistant={assistant} messages={activeTopic?.messages} />
       <NarrowLayout style={{ width: '100%' }}>
         <InputBarContainer
           id="inputbar"

@@ -36,6 +36,18 @@ export default class AiProvider {
     return this.sdk.generateText({ prompt, content })
   }
 
+  public async generateSuggestions({
+    prompt,
+    content,
+    assistant
+  }: {
+    prompt: string
+    content: string
+    assistant: Assistant
+  }): Promise<string> {
+    return this.sdk.generateSuggestions({ prompt, content, assistant })
+  }
+
   public async check(model: Model): Promise<{ valid: boolean; error: Error | null }> {
     return this.sdk.check(model)
   }

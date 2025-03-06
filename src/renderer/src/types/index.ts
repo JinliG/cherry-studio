@@ -130,11 +130,6 @@ export type Suggestion = {
   content: string
 }
 
-export type InputSuggestion = {
-  label: string
-  content: string
-}
-
 export interface Painting {
   id: string
   model?: string
