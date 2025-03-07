@@ -519,7 +519,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
           id="inputbar"
           className={classNames('inputbar-container', inputFocus && 'focus')}
           ref={containerRef}>
-          <AttachmentPreview files={files} setFiles={setFiles} />
+          <AttachmentPreview topic={activeTopic} files={files} setFiles={setFiles} />
           <MentionModelsInput selectedModels={mentionModels} onRemoveModel={handleRemoveModel} />
           <Textarea
             value={text}

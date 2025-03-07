@@ -2,6 +2,7 @@ import {
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
+  EnterOutlined,
   ForkOutlined,
   LikeFilled,
   LikeOutlined,
@@ -39,6 +40,7 @@ interface Props {
   onEditMessage?: (message: Message) => void
   onDeleteMessage?: (message: Message) => Promise<void>
   onGetMessages?: () => Message[]
+  onSeekAsk?: (message: Message) => void
 }
 
 const MessageMenubar: FC<Props> = (props) => {
@@ -52,7 +54,8 @@ const MessageMenubar: FC<Props> = (props) => {
     assistantModel,
     onEditMessage,
     onDeleteMessage,
-    onGetMessages
+    onGetMessages,
+    onSeekAsk
   } = props
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
@@ -245,6 +248,13 @@ const MessageMenubar: FC<Props> = (props) => {
           {copied && <CheckOutlined style={{ color: 'var(--color-primary)' }} />}
         </ActionButton>
       </Tooltip>
+      {!!onSeekAsk && (
+        <Tooltip title={t('追问')} mouseEnterDelay={0.8}>
+          <ActionButton className="message-action-button" onClick={() => onSeekAsk(message)}>
+            <EnterOutlined />
+          </ActionButton>
+        </Tooltip>
+      )}
       {isAssistantMessage && (
         <Popconfirm
           title={t('message.regenerate.confirm')}

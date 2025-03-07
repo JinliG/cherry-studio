@@ -154,6 +154,20 @@ const Messages: FC<Props> = ({ assistant, topic, setActiveTopic }) => {
     [messages, topic.id]
   )
 
+  const onSeekAsk = useCallback(
+    (msg: Message) => {
+      if (topic) {
+        const data = {
+          ...topic,
+          attachedText: msg.content
+        }
+        updateTopic(data)
+        setActiveTopic(data)
+      }
+    },
+    [topic]
+  )
+
   const onGetMessages = useCallback(() => {
     return messagesRef.current
   }, [])
@@ -316,6 +330,7 @@ const Messages: FC<Props> = ({ assistant, topic, setActiveTopic }) => {
                 onDeleteMessage={onDeleteMessage}
                 onDeleteGroupMessages={onDeleteGroupMessages}
                 onGetMessages={onGetMessages}
+                onSeekAsk={onSeekAsk}
               />
             ))}
           </ScrollContainer>

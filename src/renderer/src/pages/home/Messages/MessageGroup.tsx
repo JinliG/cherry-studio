@@ -18,6 +18,7 @@ interface Props {
   onSetMessages?: Dispatch<SetStateAction<Message[]>>
   onDeleteMessage?: (message: Message) => Promise<void>
   onDeleteGroupMessages?: (askId: string) => Promise<void>
+  onSeekAsk?: (message: Message) => void
 }
 
 const MessageGroup: FC<Props> = ({
@@ -27,7 +28,8 @@ const MessageGroup: FC<Props> = ({
   onDeleteMessage,
   onSetMessages,
   onGetMessages,
-  onDeleteGroupMessages
+  onDeleteGroupMessages,
+  onSeekAsk
 }) => {
   const { multiModelMessageStyle: multiModelMessageStyleSetting, gridColumns, gridPopoverTrigger } = useSettings()
   const { t } = useTranslation()
@@ -88,6 +90,7 @@ const MessageGroup: FC<Props> = ({
                       onSetMessages={onSetMessages}
                       onDeleteMessage={onDeleteMessage}
                       onGetMessages={onGetMessages}
+                      onSeekAsk={onSeekAsk}
                     />
                   </MessageWrapper>
                 }
@@ -118,6 +121,7 @@ const MessageGroup: FC<Props> = ({
                     onSetMessages={onSetMessages}
                     onDeleteMessage={onDeleteMessage}
                     onGetMessages={onGetMessages}
+                    onSeekAsk={onSeekAsk}
                   />
                 </MessageWrapper>
               </Popover>
@@ -140,6 +144,7 @@ const MessageGroup: FC<Props> = ({
                 onSetMessages={onSetMessages}
                 onDeleteMessage={onDeleteMessage}
                 onGetMessages={onGetMessages}
+                onSeekAsk={onSeekAsk}
               />
             </MessageWrapper>
           )

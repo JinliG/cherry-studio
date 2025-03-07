@@ -91,6 +91,7 @@ export type Topic = {
   pinned?: boolean
   prompt?: string
   attachedFile?: FileType
+  attachedText?: string
 }
 
 export type User = {

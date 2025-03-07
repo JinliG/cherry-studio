@@ -33,6 +33,7 @@ interface Props {
   onGetMessages?: () => Message[]
   onSetMessages?: Dispatch<SetStateAction<Message[]>>
   onDeleteMessage?: (message: Message) => Promise<void>
+  onSeekAsk?: (message: Message) => void
 }
 
 const getMessageBackground = (isBubbleStyle: boolean, isAssistantMessage: boolean) => {
@@ -52,7 +53,8 @@ const MessageItem: FC<Props> = ({
   style,
   onDeleteMessage,
   onSetMessages,
-  onGetMessages
+  onGetMessages,
+  onSeekAsk
 }) => {
   const [message, setMessage] = useState(_message)
   const { t } = useTranslation()
@@ -214,6 +216,7 @@ const MessageItem: FC<Props> = ({
               onEditMessage={onEditMessage}
               onDeleteMessage={onDeleteMessage}
               onGetMessages={onGetMessages}
+              onSeekAsk={onSeekAsk}
             />
           </MessageFooter>
         )}
