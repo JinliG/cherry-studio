@@ -63,7 +63,6 @@ const ContentContainer = styled.div`
     color: var(--color-gray-1);
     background-color: var(--color-background-mute);
     border-radius: 4px;
-    width: 90%;
     display: flex;
   }
 

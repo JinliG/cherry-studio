@@ -25,15 +25,14 @@ export default abstract class BaseProvider {
   abstract translate(message: Message, assistant: Assistant, onResponse?: (text: string) => void): Promise<string>
   abstract summaries(messages: Message[], assistant: Assistant): Promise<string>
   abstract suggestions(messages: Message[], assistant: Assistant): Promise<Suggestion[]>
-  abstract generateText({ prompt, content }: { prompt: string; content: string }): Promise<string>
-  abstract generateSuggestions({
+  abstract generateText({
     prompt,
     content,
     assistant
   }: {
     prompt: string
     content: string
-    assistant: Assistant
+    assistant?: Assistant
   }): Promise<string>
   abstract check(model: Model): Promise<{ valid: boolean; error: Error | null }>
   abstract models(): Promise<OpenAI.Models.Model[]>

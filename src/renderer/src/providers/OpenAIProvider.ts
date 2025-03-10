@@ -372,32 +372,17 @@ export default class OpenAIProvider extends BaseProvider {
     return removeSpecialCharacters(content.substring(0, 50))
   }
 
-  public async generateText({ prompt, content }: { prompt: string; content: string }): Promise<string> {
-    const model = getDefaultModel()
-
-    const response = await this.sdk.chat.completions.create({
-      model: model.id,
-      stream: false,
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content }
-      ]
-    })
-
-    return response.choices[0].message?.content || ''
-  }
-
-  public async generateSuggestions({
-    assistant,
+  public async generateText({
     prompt,
-    content
+    content,
+    assistant
   }: {
     prompt: string
     content: string
-    assistant: Assistant
+    assistant?: Assistant
   }): Promise<string> {
     const defaultModel = getDefaultModel()
-    const model = assistant.model || defaultModel
+    const model = assistant?.model || defaultModel
 
     const response = await this.sdk.chat.completions.create({
       model: model.id,

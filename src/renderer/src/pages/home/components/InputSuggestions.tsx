@@ -1,5 +1,5 @@
 import { BUILD_SUGGESTION_PROMPT } from '@renderer/config/prompts'
-import { fetchTopicSuggestions } from '@renderer/services/ApiService'
+import { fetchTextByPrompt } from '@renderer/services/ApiService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { Assistant, Message, Suggestion } from '@renderer/types'
 import { uuid } from '@renderer/utils'
@@ -41,7 +41,7 @@ const InputSuggestions: FC<Props> = ({ assistant, lastInputText: currentInputTex
         setLoadingSuggestions(true)
 
         try {
-          const generatedText = await fetchTopicSuggestions({
+          const generatedText = await fetchTextByPrompt({
             assistant,
             prompt: BUILD_SUGGESTION_PROMPT.replace('{user}', currentInputText).replace('{assistant}', msg.content),
             content: currentInputText

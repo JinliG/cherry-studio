@@ -1,6 +1,7 @@
-import { useAssistant } from '@renderer/hooks/useAssistant'
+import { ATTACHED_DOC_INDEX_PROMPT } from '@renderer/config/prompts'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
+import { fetchTextByPrompt } from '@renderer/services/ApiService'
 import { Assistant, Topic } from '@renderer/types'
 import { Flex } from 'antd'
 import { FC, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,14 +20,32 @@ interface Props {
 }
 
 const Chat: FC<Props> = (props) => {
+  const { activeTopic, assistant } = props
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const { assistant } = useAssistant(props.assistant.id)
-  const { topicPosition, messageStyle } = useSettings()
+  const { topicPosition, messageStyle, showAssistants } = useSettings()
   const { showTopics } = useShowTopics()
 
   const [wrapperWidth, setWrapperWidth] = useState<number>(0)
 
-  const docFocusMode = !!props.activeTopic.attachedFile
+  const docFocusMode = !!activeTopic.attachedFile
+
+  const handleGenerateDocIndex = async () => {
+    if (!activeTopic.attachedFile) {
+      return
+    }
+    const file = activeTopic.attachedFile
+    const fileContent = await (await window.api.file.read(file.id + file.ext)).trim()
+    try {
+      const indexJson = await fetchTextByPrompt({
+        assistant,
+        prompt: ATTACHED_DOC_INDEX_PROMPT.SYSTEM,
+        content: ATTACHED_DOC_INDEX_PROMPT.USER.replace('{file_content}', fileContent)
+      })
+      console.log('--- generatedText', indexJson)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    }
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -69,6 +88,13 @@ const Chat: FC<Props> = (props) => {
 
   const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 56 : 0), [wrapperWidth])
 
+  const maxWidth = useMemo(() => {
+    const showRightTopics = showTopics && topicPosition === 'right'
+    const minusAssistantsWidth = showAssistants ? '- var(--assistants-width)' : ''
+    const minusRightTopicsWidth = showRightTopics ? '- var(--assistants-width)' : ''
+    return `calc(100vw - var(--sidebar-width) ${minusAssistantsWidth} ${minusRightTopicsWidth} - 5px)`
+  }, [showAssistants, showTopics, topicPosition])
+
   return (
     <Container id="chat" className={messageStyle}>
       <Wrapper ref={wrapperRef}>
@@ -78,28 +104,35 @@ const Chat: FC<Props> = (props) => {
             style={{
               width: pageWidth + 24
             }}>
-            <PdfReader assistant={assistant} topic={props.activeTopic} pageWidth={pageWidth} />
+            <PdfReader assistant={assistant} topic={activeTopic} pageWidth={pageWidth} />
           </div>
         )}
-        <Main id="chat-main" vertical flex={1} justify="space-between">
+        <Main
+          id="chat-main"
+          vertical
+          flex={1}
+          justify="space-between"
+          style={{
+            maxWidth
+          }}>
           <Messages
-            key={props.activeTopic.id}
+            key={activeTopic.id}
             assistant={assistant}
-            topic={props.activeTopic}
+            topic={activeTopic}
             setActiveTopic={props.setActiveTopic}
           />
           <Inputbar
             docFocusMode={docFocusMode}
             assistant={assistant}
             setActiveTopic={props.setActiveTopic}
-            activeTopic={props.activeTopic}
+            activeTopic={activeTopic}
           />
         </Main>
       </Wrapper>
       {topicPosition === 'right' && showTopics && (
         <Tabs
           activeAssistant={assistant}
-          activeTopic={props.activeTopic}
+          activeTopic={activeTopic}
           setActiveAssistant={props.setActiveAssistant}
           setActiveTopic={props.setActiveTopic}
           position="right"
@@ -110,9 +143,9 @@ const Chat: FC<Props> = (props) => {
 }
 
 const Container = styled.div`
+  height: 100%;
   display: flex;
   flex-direction: row;
-  height: 100%;
   flex: 1;
   justify-content: space-between;
 `

@@ -319,18 +319,6 @@ export default class GeminiProvider extends BaseProvider {
     return response.text()
   }
 
-  public async generateSuggestions({ prompt, content }: { prompt: string; content: string }): Promise<string> {
-    const model = getDefaultModel()
-    const systemMessage = { role: 'system', content: prompt }
-
-    const geminiModel = this.sdk.getGenerativeModel({ model: model.id }, this.requestOptions)
-
-    const chat = await geminiModel.startChat({ systemInstruction: systemMessage.content })
-    const { response } = await chat.sendMessage(content)
-
-    return response.text()
-  }
-
   public async suggestions(): Promise<Suggestion[]> {
     return []
   }

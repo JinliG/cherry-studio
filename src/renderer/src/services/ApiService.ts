@@ -178,7 +178,7 @@ export async function fetchGenerate({ prompt, content }: { prompt: string; conte
   }
 }
 
-export async function fetchTopicSuggestions({
+export async function fetchTextByPrompt({
   prompt,
   content,
   assistant
@@ -191,7 +191,7 @@ export async function fetchTopicSuggestions({
   const AI = new AiProvider(provider)
 
   try {
-    return await AI.generateSuggestions({ prompt, content, assistant })
+    return await AI.generateText({ prompt, content, assistant })
   } catch (error: any) {
     return ''
   }
