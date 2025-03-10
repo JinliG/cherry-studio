@@ -1,4 +1,5 @@
 import Scrollbar from '@renderer/components/Scrollbar'
+import { ATTACHED_TEXT_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useSettings } from '@renderer/hooks/useSettings'
@@ -82,8 +83,23 @@ const Messages: FC<Props> = ({ assistant, topic, setActiveTopic }) => {
       }
 
       setMessages((prev) => {
+        // handle topic attached content
         if (topic.attachedFile) {
           message.files ? message.files.push(topic.attachedFile) : (message.files = [topic.attachedFile])
+        }
+
+        if (topic.attachedText) {
+          message.content = ATTACHED_TEXT_PROMPT.replace('{attached_text}', topic.attachedText).replace(
+            'message_content',
+            message.content
+          )
+
+          const data = {
+            ...topic,
+            attachedText: undefined
+          }
+          updateTopic(data)
+          setActiveTopic(data)
         }
 
         const messages = prev.concat([message, ...assistantMessages])

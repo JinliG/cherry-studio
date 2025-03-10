@@ -10,11 +10,22 @@ interface Props {
   files: FileType[]
   setFiles: (files: FileType[]) => void
   topic: Topic
+  setActiveTopic: (topic: Topic) => void
+  updateTopic: (topic: Topic) => void
 }
 
-const AttachmentPreview: FC<Props> = ({ files, setFiles, topic }) => {
+const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic }) => {
   if (isEmpty(files) && isEmpty(topic.attachedText)) {
     return null
+  }
+
+  const onRemoveAttachedText = () => {
+    const data = {
+      ...topic,
+      attachedText: undefined
+    }
+    updateTopic(data)
+    setActiveTopic(data)
   }
 
   return (
@@ -22,7 +33,7 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic }) => {
       {topic.attachedText && (
         <div className="attach-text">
           <div className="attach-text-content">{topic.attachedText}</div>
-          <CloseOutlined className="close-icon" />
+          <CloseOutlined className="close-icon" onClick={onRemoveAttachedText} />
         </div>
       )}
       {!isEmpty(files) && (

@@ -61,7 +61,7 @@ let _files: FileType[] = []
 const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopic, docFocusMode }) => {
   const [text, setText] = useState(_text)
   const [inputFocus, setInputFocus] = useState(false)
-  const { assistant, addTopic, model, setModel, updateAssistant } = useAssistant(_assistant.id)
+  const { assistant, addTopic, model, setModel, updateAssistant, updateTopic } = useAssistant(_assistant.id)
   const {
     targetLanguage,
     sendMessageShortcut,
@@ -511,6 +511,8 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
     setMentionModels(mentionModels.filter((m) => m.id !== model.id))
   }
 
+  console.log('--- assistant', assistant, activeTopic)
+
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
       <InputSuggestions lastInputText={_lastInputText} assistant={assistant} messages={activeTopic?.messages} />
@@ -519,7 +521,13 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
           id="inputbar"
           className={classNames('inputbar-container', inputFocus && 'focus')}
           ref={containerRef}>
-          <AttachmentPreview topic={activeTopic} files={files} setFiles={setFiles} />
+          <AttachmentPreview
+            topic={activeTopic}
+            setActiveTopic={setActiveTopic}
+            updateTopic={updateTopic}
+            files={files}
+            setFiles={setFiles}
+          />
           <MentionModelsInput selectedModels={mentionModels} onRemoveModel={handleRemoveModel} />
           <Textarea
             value={text}
