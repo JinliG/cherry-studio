@@ -131,35 +131,46 @@ const MessageItem: FC<Props> = ({
 
   useEffect(() => {
     if (topic && onGetMessages && onSetMessages) {
-      if (message.status === 'sending') {
-        const messages = onGetMessages()
-        const assistantWithModel = message.model ? { ...assistant, model: message.model } : assistant
+      runAsyncFunction(async () => {
+        if (message.status === 'sending') {
+          const messages = onGetMessages()
+          const assistantWithModel = message.model ? { ...assistant, model: message.model } : assistant
 
-        if (topic.prompt) {
-          assistantWithModel.prompt = assistantWithModel.prompt
-            ? `${assistantWithModel.prompt}\n${topic.prompt}`
-            : topic.prompt
-        }
-
-        fetchChatCompletion({
-          message,
-          messages: messages
-            .filter((m) => !m.status.includes('ing'))
-            .slice(
-              0,
-              messages.findIndex((m) => m.id === message.id)
-            ),
-          assistant: assistantWithModel,
-          onResponse: (msg) => {
-            setMessage(msg)
-            if (msg.status !== 'pending') {
-              const _messages = onGetMessages().map((m) => (m.id === msg.id ? msg : m))
-              onSetMessages(_messages)
-              db.topics.update(topic.id, { messages: _messages })
-            }
+          if (topic.prompt) {
+            assistantWithModel.prompt = assistantWithModel.prompt
+              ? `${assistantWithModel.prompt}\n${topic.prompt}`
+              : topic.prompt
           }
-        })
-      }
+
+          if (topic.attachedFile) {
+            const fileContent = await (
+              await window.api.file.read(topic.attachedFile?.id + topic.attachedFile?.ext)
+            ).trim()
+            assistantWithModel.prompt = assistantWithModel.prompt
+              ? `${assistantWithModel.prompt}\n${fileContent}`
+              : fileContent
+          }
+
+          fetchChatCompletion({
+            message,
+            messages: messages
+              .filter((m) => !m.status.includes('ing'))
+              .slice(
+                0,
+                messages.findIndex((m) => m.id === message.id)
+              ),
+            assistant: assistantWithModel,
+            onResponse: (msg) => {
+              setMessage(msg)
+              if (msg.status !== 'pending') {
+                const _messages = onGetMessages().map((m) => (m.id === msg.id ? msg : m))
+                onSetMessages(_messages)
+                db.topics.update(topic.id, { messages: _messages })
+              }
+            }
+          })
+        }
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message.status])

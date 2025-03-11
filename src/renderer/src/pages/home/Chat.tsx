@@ -1,7 +1,5 @@
-import { ATTACHED_DOC_INDEX_PROMPT } from '@renderer/config/prompts'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
-import { fetchTextByPrompt } from '@renderer/services/ApiService'
 import { Assistant, Topic } from '@renderer/types'
 import { Flex } from 'antd'
 import { FC, useEffect, useMemo, useRef, useState } from 'react'
@@ -28,24 +26,6 @@ const Chat: FC<Props> = (props) => {
   const [wrapperWidth, setWrapperWidth] = useState<number>(0)
 
   const docFocusMode = !!activeTopic.attachedFile
-
-  const handleGenerateDocIndex = async () => {
-    if (!activeTopic.attachedFile) {
-      return
-    }
-    const file = activeTopic.attachedFile
-    const fileContent = await (await window.api.file.read(file.id + file.ext)).trim()
-    try {
-      const indexJson = await fetchTextByPrompt({
-        assistant,
-        prompt: ATTACHED_DOC_INDEX_PROMPT.SYSTEM,
-        content: ATTACHED_DOC_INDEX_PROMPT.USER.replace('{file_content}', fileContent)
-      })
-      console.log('--- generatedText', indexJson)
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    }
-  }
 
   useEffect(() => {
     const handleResize = () => {

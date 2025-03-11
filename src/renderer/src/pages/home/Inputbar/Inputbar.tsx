@@ -511,8 +511,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
     setMentionModels(mentionModels.filter((m) => m.id !== model.id))
   }
 
-  console.log('--- assistant', assistant, activeTopic)
-
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
       <InputSuggestions lastInputText={_lastInputText} assistant={assistant} messages={activeTopic?.messages} />
