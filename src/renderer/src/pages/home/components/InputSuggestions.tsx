@@ -46,7 +46,7 @@ const InputSuggestions: FC<Props> = ({ assistant, lastInputText: currentInputTex
             prompt: BUILD_SUGGESTION_PROMPT.replace('{user}', currentInputText).replace('{assistant}', msg.content),
             content: currentInputText
           })
-          const _suggestions = generatedText.split(',').map((content) => {
+          const _suggestions = generatedText.split(/[,，]/).map((content) => {
             return {
               content: content.trim()
             }

@@ -103,11 +103,13 @@ const PdfReader: React.FC<Props> = (props) => {
             />
           </div>
           <Pagination
+            size="small"
             className={`pagination ${showPagination ? 'show' : ''}`}
             align="center"
             total={pageTotal}
             pageSize={1}
             showSizeChanger={false}
+            showQuickJumper
             current={pageCurrent}
             onChange={setPageCurrent}
           />
