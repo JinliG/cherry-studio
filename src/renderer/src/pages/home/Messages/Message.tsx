@@ -12,6 +12,7 @@ import { estimateHistoryTokens, estimateMessageUsage } from '@renderer/services/
 import { Message, Topic } from '@renderer/types'
 import { classNames, runAsyncFunction } from '@renderer/utils'
 import { Divider } from 'antd'
+import { isEmpty } from 'lodash'
 import { Dispatch, FC, memo, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
@@ -142,7 +143,8 @@ const MessageItem: FC<Props> = ({
               : topic.prompt
           }
 
-          if (topic.attachedFile) {
+          // wont read file content if knowledge base is enabled
+          if (topic.attachedFile && isEmpty(assistantWithModel.knowledge_bases)) {
             const fileContent = await (
               await window.api.file.read(topic.attachedFile?.id + topic.attachedFile?.ext)
             ).trim()

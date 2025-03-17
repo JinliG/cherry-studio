@@ -1,9 +1,16 @@
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
-import { DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons'
+import {
+  DoubleLeftOutlined,
+  DoubleRightOutlined,
+  SelectOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined
+} from '@ant-design/icons'
 import { Assistant, Topic } from '@renderer/types'
-import { Button, Pagination } from 'antd'
+import { Button, Checkbox, Flex, Pagination } from 'antd'
+import { debounce, filter, find } from 'lodash'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Document, Outline, Page, pdfjs } from 'react-pdf'
@@ -15,10 +22,21 @@ const options = {
   standardFontDataUrl: '/standard_fonts/'
 }
 
+const PdfStatueRender = {
+  LOADING: () => <div className="document-status">Loading PDF...</div>,
+  ERROR: () => <div className="document-status">Error loading PDF</div>,
+  NO_DATA: () => <div className="document-status">No PDF data</div>
+}
+
 interface Props {
   assistant: Assistant
   topic: Topic
   pageWidth: number
+}
+
+type PageContentMap = {
+  index: number
+  pageContent: string
 }
 
 const PdfReader: React.FC<Props> = (props) => {
@@ -30,6 +48,9 @@ const PdfReader: React.FC<Props> = (props) => {
   const [showPagination, setShowPagination] = useState(false)
   const [pageContent, setPageContent] = useState('')
   const [showIndex, setShowIndex] = useState(false)
+  const [showSelect, setShowSelect] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [selectedPages, setSelectedPages] = useState<PageContentMap[]>([])
 
   const { t } = useTranslation()
 
@@ -44,6 +65,18 @@ const PdfReader: React.FC<Props> = (props) => {
     loadFile()
   }, [topic.attachedFile])
 
+  const checked = useMemo(() => {
+    return !!find(selectedPages, (page) => page.index === pageCurrent)
+  }, [selectedPages, pageCurrent])
+
+  const handleTriggerSelectedPages = () => {
+    if (checked) {
+      setSelectedPages(filter(selectedPages, (page) => page.index !== pageCurrent))
+    } else {
+      setSelectedPages((state) => [...state, { index: pageCurrent, pageContent }])
+    }
+  }
+
   const pdfFile = useMemo(() => {
     if (file) {
       return file
@@ -52,11 +85,17 @@ const PdfReader: React.FC<Props> = (props) => {
     return null
   }, [file])
 
+  const onZoomIn = debounce(() => {
+    setScale(scale + 0.2)
+  }, 100)
+
+  const onZoomOut = debounce(() => {
+    setScale(scale - 0.2)
+  }, 100)
+
   const onLoadSuccess = (pdf: any) => {
     setPageTotal(pdf.numPages)
   }
-
-  console.log('--- pageContent', pageContent)
 
   return (
     <Container
@@ -67,16 +106,46 @@ const PdfReader: React.FC<Props> = (props) => {
         setShowPagination(false)
       }}>
       {!showIndex && (
-        <Button size="small" className="show-index" onClick={() => setShowIndex(true)} icon={<DoubleRightOutlined />}>
+        <Button
+          size="small"
+          className="index-trigger"
+          onClick={() => setShowIndex(true)}
+          icon={<DoubleRightOutlined />}>
           {t('目录')}
         </Button>
       )}
+      {showSelect && (
+        <Checkbox
+          checked={checked}
+          className={`page-checker ${checked ? 'checked' : ''}`}
+          onChange={handleTriggerSelectedPages}>
+          {checked ? t('√ 已选中') : t('点击选中当前页')}
+        </Checkbox>
+      )}
+      <OperationWrapper vertical align="flex-end" gap={8}>
+        <OperateButton
+          icon={<SelectOutlined />}
+          data-active={showSelect}
+          onClick={() => {
+            setShowSelect((state) => !state)
+          }}
+        />
+        <OperateButton icon={<ZoomInOutlined />} onClick={onZoomIn} />
+        <OperateButton icon={<ZoomOutOutlined />} onClick={onZoomOut} />
+      </OperationWrapper>
       {pdfFile && (
-        <Document className="document" file={pdfFile} options={options} onLoadSuccess={onLoadSuccess}>
+        <Document
+          className="document"
+          file={pdfFile}
+          options={options}
+          onLoadSuccess={onLoadSuccess}
+          loading={PdfStatueRender.LOADING}
+          error={PdfStatueRender.ERROR}
+          noData={PdfStatueRender.NO_DATA}>
           <Page
             pageNumber={pageCurrent}
             width={pageWidth}
-            scale={1}
+            scale={scale}
             onGetTextSuccess={({ items }) => {
               setPageContent(
                 items.reduce((acc, item: any) => {
@@ -87,8 +156,11 @@ const PdfReader: React.FC<Props> = (props) => {
                 }, ``)
               )
             }}
+            loading={null}
+            error={null}
+            noData={null}
           />
-          <div className={`outline-index ${showIndex ? 'visible' : ''}`}>
+          <OutlineWrapper className={showIndex ? 'visible' : ''}>
             <div className="index-header">
               <span>{t('目录')}</span>
               <Button size="small" onClick={() => setShowIndex(false)} icon={<DoubleLeftOutlined />}>
@@ -101,7 +173,7 @@ const PdfReader: React.FC<Props> = (props) => {
                 setShowIndex(false)
               }}
             />
-          </div>
+          </OutlineWrapper>
           <Pagination
             size="small"
             className={`pagination ${showPagination ? 'show' : ''}`}
@@ -128,47 +200,38 @@ const Container = styled.div`
   overflow-y: auto;
   padding: 12px 12px 12px 0;
 
-  .show-index {
+  .index-trigger {
     position: absolute;
     left: 0;
-    top: 60px;
+    top: 12px;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     border-left: unset;
-    z-index: 5;
+    z-index: 4;
   }
+
+  .page-checker {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    z-index: 4;
+    flex-direction: row-reverse;
+
+    &.checked {
+      color: var(--color-primary);
+    }
+  }
+
   .document {
     height: 100%;
     position: relative;
-  }
 
-  .outline-index {
-    position: absolute;
-    width: 0;
-    height: 100%;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    overflow-y: auto;
-    z-index: 5;
-    background-color: var(--color-background);
-    transition: width 0.2s ease-in-out;
-    padding-top: 32px;
-
-    &.visible {
-      width: 100%;
-    }
-
-    .index-header {
+    .document-status,
+    .page-status {
       position: absolute;
-      top: 0;
-      left: 12px;
-      right: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
   }
 
@@ -177,13 +240,60 @@ const Container = styled.div`
     position: sticky;
     right: 0;
     left: 0;
-    top: 100vh;
+    top: 0;
+    bottom: 0;
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
+    background-color: var(--color-background);
+    padding-top: 8px;
 
     &.show {
       opacity: 1;
     }
+  }
+`
+
+const OutlineWrapper = styled.div`
+  position: absolute;
+  width: 0;
+  height: 100%;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 5;
+  background-color: var(--color-background);
+  transition: width 0.2s ease-in-out;
+
+  &.visible {
+    width: 100%;
+  }
+
+  .index-header {
+    position: sticky;
+    top: 0;
+    padding: 0 12px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    background-color: var(--color-background);
+  }
+`
+const OperationWrapper = styled(Flex)`
+  z-index: 4;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+`
+
+const OperateButton = styled(Button)`
+  &[data-active='true'] {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 `
 

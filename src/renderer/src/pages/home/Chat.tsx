@@ -74,7 +74,7 @@ const Chat: FC<Props> = (props) => {
     const minusRightTopicsWidth = showRightTopics ? '- var(--assistants-width)' : ''
     const sidePageWidth = docFocusMode ? pageWidth : 0
     return `calc(100vw - var(--sidebar-width) ${minusAssistantsWidth} ${minusRightTopicsWidth} - 5px - ${sidePageWidth}px)`
-  }, [showAssistants, showTopics, topicPosition, docFocusMode])
+  }, [showAssistants, showTopics, topicPosition, docFocusMode, pageWidth])
 
   return (
     <Container id="chat" className={messageStyle}>
