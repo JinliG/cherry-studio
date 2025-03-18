@@ -85,7 +85,12 @@ const Chat: FC<Props> = (props) => {
             style={{
               width: pageWidth + 24
             }}>
-            <PdfReader assistant={assistant} topic={activeTopic} pageWidth={pageWidth} />
+            <PdfReader
+              assistant={assistant}
+              topic={activeTopic}
+              pageWidth={pageWidth}
+              setActiveTopic={props.setActiveTopic}
+            />
           </div>
         )}
         <Main

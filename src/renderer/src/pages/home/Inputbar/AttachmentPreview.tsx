@@ -1,12 +1,14 @@
 import { CloseOutlined } from '@ant-design/icons'
 import FileManager from '@renderer/services/FileManager'
-import { FileType, Topic } from '@renderer/types'
-import { Upload } from 'antd'
-import { isEmpty } from 'lodash'
-import { FC } from 'react'
+import { Assistant, FileType, Topic } from '@renderer/types'
+import { Tag, Upload } from 'antd'
+import { filter, isEmpty, map } from 'lodash'
+import { FC, ReactNode, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
 interface Props {
+  assistant: Assistant
   files: FileType[]
   setFiles: (files: FileType[]) => void
   topic: Topic
@@ -14,30 +16,46 @@ interface Props {
   updateTopic: (topic: Topic) => void
 }
 
-const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic }) => {
-  if (isEmpty(files) && isEmpty(topic.attachedText)) {
-    return null
+const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic, assistant }) => {
+  const { attachedFile, attachedText, attachedPages } = topic
+  const { t } = useTranslation()
+
+  const handleRemoveFile = (item: any) => {
+    setFiles(files.filter((file) => item.uid !== file.id))
   }
 
-  const onRemoveAttachedText = () => {
-    const data = {
+  const handleRemoveAttachedText = () => {
+    updateAndSetActiveTopic({ ...topic, attachedText: undefined })
+  }
+
+  const handleRemoveAttachedPage = (index: number) => {
+    updateAndSetActiveTopic({
       ...topic,
-      attachedText: undefined
-    }
-    updateTopic(data)
-    setActiveTopic(data)
+      attachedPages: filter(attachedPages, (page) => page.index !== index)
+    })
   }
 
-  return (
-    <ContentContainer>
-      {topic.attachedText && (
-        <div className="attach-text">
-          <div className="attach-text-content">{topic.attachedText}</div>
-          <CloseOutlined className="close-icon" onClick={onRemoveAttachedText} />
+  const updateAndSetActiveTopic = (updatedTopic: Topic) => {
+    updateTopic(updatedTopic)
+    setActiveTopic(updatedTopic)
+  }
+
+  const Attachments = useMemo(() => {
+    const attachments: ReactNode[] = []
+
+    if (attachedText) {
+      attachments.push(
+        <div key="attachedText" className="attach-text">
+          <div className="attach-text-content">{attachedText}</div>
+          <CloseOutlined className="close-icon" onClick={handleRemoveAttachedText} />
         </div>
-      )}
-      {!isEmpty(files) && (
+      )
+    }
+
+    if (!isEmpty(files)) {
+      attachments.push(
         <Upload
+          key="files"
           listType={files.length > 20 ? 'text' : 'picture-card'}
           fileList={files.map((file) => ({
             uid: file.id,
@@ -45,11 +63,47 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
             status: 'done',
             name: file.name
           }))}
-          onRemove={(item) => setFiles(files.filter((file) => item.uid !== file.id))}
+          onRemove={handleRemoveFile}
         />
-      )}
-    </ContentContainer>
-  )
+      )
+    }
+
+    if (!isEmpty(attachedPages)) {
+      attachments.push(
+        <div key="attachedPages" className="attach-list">
+          {map(attachedPages, ({ index }) => (
+            <Tag
+              key={index}
+              closable
+              color="green"
+              onClose={(e) => {
+                e.preventDefault()
+                handleRemoveAttachedPage(index)
+              }}>
+              {t('第{{index}}页', { index })}
+            </Tag>
+          ))}
+        </div>
+      )
+    }
+
+    if (!isEmpty(attachedFile) && isEmpty(attachedPages) && isEmpty(assistant.knowledge_bases)) {
+      attachments.push(
+        <div key="attachedFile" className="attach-file">
+          {t('正在关联文档：')}
+          {attachedFile?.origin_name}
+        </div>
+      )
+    }
+
+    return attachments
+  }, [files, attachedFile, attachedText, attachedPages, assistant.knowledge_bases])
+
+  if (isEmpty(Attachments)) {
+    return null
+  }
+
+  return <ContentContainer>{Attachments}</ContentContainer>
 }
 
 const ContentContainer = styled.div`
@@ -57,6 +111,14 @@ const ContentContainer = styled.div`
   overflow-y: auto;
   width: 100%;
   padding: 10px 15px 0;
+
+  .attach-file {
+    width: fit-content;
+    padding: 2px 8px;
+    background-color: var(--color-primary);
+    border-radius: 4px;
+    color: var(--color-white);
+  }
 
   .attach-text {
     padding: 2px 6px;

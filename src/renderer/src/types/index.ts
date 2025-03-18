@@ -81,6 +81,11 @@ export type Metrics = {
   time_thinking_millsec?: number
 }
 
+export type AttachedPage = {
+  index: number
+  content: string
+}
+
 export type Topic = {
   id: string
   assistantId: string
@@ -92,6 +97,7 @@ export type Topic = {
   prompt?: string
   attachedFile?: FileType
   attachedText?: string
+  attachedPages?: AttachedPage[]
 }
 
 export type User = {

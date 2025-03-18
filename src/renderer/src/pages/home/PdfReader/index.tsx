@@ -8,7 +8,8 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined
 } from '@ant-design/icons'
-import { Assistant, Topic } from '@renderer/types'
+import { useAssistant } from '@renderer/hooks/useAssistant'
+import { Assistant, AttachedPage, Topic } from '@renderer/types'
 import { Button, Checkbox, Flex, Pagination } from 'antd'
 import { debounce, filter, find } from 'lodash'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -32,15 +33,14 @@ interface Props {
   assistant: Assistant
   topic: Topic
   pageWidth: number
-}
-
-type PageContentMap = {
-  index: number
-  pageContent: string
+  setActiveTopic: (topic: Topic) => void
 }
 
 const PdfReader: React.FC<Props> = (props) => {
-  const { topic, pageWidth } = props
+  const { topic, pageWidth, assistant, setActiveTopic } = props
+  const { attachedPages = [] } = topic
+
+  const { updateTopic } = useAssistant(assistant.id)
 
   const [file, setFile] = useState<File | null>(null)
   const [pageTotal, setPageTotal] = useState(0)
@@ -50,7 +50,6 @@ const PdfReader: React.FC<Props> = (props) => {
   const [showIndex, setShowIndex] = useState(false)
   const [showSelect, setShowSelect] = useState(false)
   const [scale, setScale] = useState(1)
-  const [selectedPages, setSelectedPages] = useState<PageContentMap[]>([])
 
   const { t } = useTranslation()
 
@@ -66,14 +65,23 @@ const PdfReader: React.FC<Props> = (props) => {
   }, [topic.attachedFile])
 
   const checked = useMemo(() => {
-    return !!find(selectedPages, (page) => page.index === pageCurrent)
-  }, [selectedPages, pageCurrent])
+    return !!find(attachedPages, (page) => page.index === pageCurrent)
+  }, [attachedPages, pageCurrent])
+
+  const updateTopicAttachedPages = (newData: AttachedPage[]) => {
+    const data = {
+      ...topic,
+      attachedPages: newData
+    }
+    updateTopic(data)
+    setActiveTopic(data)
+  }
 
   const handleTriggerSelectedPages = () => {
     if (checked) {
-      setSelectedPages(filter(selectedPages, (page) => page.index !== pageCurrent))
+      updateTopicAttachedPages(filter(attachedPages, (page) => page.index !== pageCurrent))
     } else {
-      setSelectedPages((state) => [...state, { index: pageCurrent, pageContent }])
+      updateTopicAttachedPages([...attachedPages, { index: pageCurrent, content: pageContent }])
     }
   }
 
