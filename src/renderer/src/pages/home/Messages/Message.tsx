@@ -143,8 +143,16 @@ const MessageItem: FC<Props> = ({
               : topic.prompt
           }
 
+          if (!isEmpty(topic.attachedPages)) {
+            const pageContent =
+              topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+            assistantWithModel.prompt = assistantWithModel.prompt
+              ? `${assistantWithModel.prompt}\n${pageContent}`
+              : pageContent
+          }
+
           // wont read file content if knowledge base is enabled
-          if (topic.attachedFile && isEmpty(assistantWithModel.knowledge_bases)) {
+          if (topic.attachedFile && isEmpty(assistantWithModel.knowledge_bases) && isEmpty(topic.attachedPages)) {
             const fileContent = await (
               await window.api.file.read(topic.attachedFile?.id + topic.attachedFile?.ext)
             ).trim()
