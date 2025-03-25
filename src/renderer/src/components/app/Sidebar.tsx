@@ -1,4 +1,6 @@
 import {
+  ClusterOutlined,
+  DeliveredProcedureOutlined,
   FileSearchOutlined,
   FolderOutlined,
   PictureOutlined,
@@ -130,7 +132,9 @@ const MainMenus: FC = () => {
     translate: <TranslationOutlined />,
     minapp: <i className="iconfont icon-appstore" />,
     knowledge: <FileSearchOutlined />,
-    files: <FolderOutlined />
+    files: <FolderOutlined />,
+    company_template: <ClusterOutlined />,
+    company_card: <DeliveredProcedureOutlined />
   }
 
   const pathMap = {
@@ -140,7 +144,9 @@ const MainMenus: FC = () => {
     translate: '/translate',
     minapp: '/apps',
     knowledge: '/knowledge',
-    files: '/files'
+    files: '/files',
+    company_template: '/company_template',
+    company_card: '/company_card'
   }
 
   return sidebarIcons.visible.map((icon) => {

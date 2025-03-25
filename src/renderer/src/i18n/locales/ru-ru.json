@@ -143,7 +143,6 @@
       "translate": "Перевести",
       "topics.prompt": "Тематические подсказки",
       "topics.prompt.tips": "Тематические подсказки: Дополнительные подсказки, предоставленные для текущей темы",
-      "topics.prompt.edit.title": "Редактировать подсказки темы",
       "artifacts.button.openExternal": "Открыть во внешнем браузере",
       "artifacts.preview.openExternal.error.content": "Внешний браузер открылся с ошибкой"
     },
@@ -590,11 +589,7 @@
           "host": "Хост WebDAV",
           "host.placeholder": "http://localhost:8080",
           "minute_interval_one": "{{count}} минута",
-          "minute_interval_few": "{{count}} минуты",
-          "minute_interval_many": "{{count}} минут",
           "hour_interval_one": "{{count}} час",
-          "hour_interval_few": "{{count}} часа",
-          "hour_interval_many": "{{count}} часов",
           "lastSync": "Последняя синхронизация",
           "noSync": "Ожидание следующего резервного копирования",
           "password": "Пароль WebDAV",
@@ -606,8 +601,14 @@
           "syncError": "Ошибка резервного копирования",
           "syncStatus": "Статус резервного копирования",
           "title": "WebDAV",
-          "user": "Пользователь WebDAV"
-        }
+          "user": "Пользователь WebDAV",
+          "minute_interval_other": "[to be translated]:{{count}} 分钟",
+          "hour_interval_other": "[to be translated]:{{count}} 小时"
+        },
+        "minute_interval_one": "[to be translated]:{{count}} 分钟",
+        "minute_interval_other": "[to be translated]:{{count}} 分钟",
+        "hour_interval_one": "[to be translated]:{{count}} 小时",
+        "hour_interval_other": "[to be translated]:{{count}} 小时"
       },
       "display.custom.css": "Пользовательский CSS",
       "display.custom.css.placeholder": "/* Здесь введите пользовательский CSS */",
@@ -780,7 +781,14 @@
       "input.placeholder": "Введите текст для перевода",
       "output.placeholder": "Перевод",
       "processing": "Перевод в процессе...",
-      "title": "Перевод"
+      "title": "Перевод",
+      "history": {
+        "title": "[to be translated]:翻译历史",
+        "empty": "[to be translated]:暂无翻译历史",
+        "clear": "[to be translated]:清空历史",
+        "delete": "[to be translated]:删除",
+        "clear_description": "[to be translated]:清空历史将删除所有翻译历史记录，是否继续？"
+      }
     },
     "tray": {
       "quit": "Выйти",
@@ -795,6 +803,24 @@
     },
     "docs": {
       "title": "Документация"
+    },
+    "plantuml": {
+      "title": "[to be translated]:PlantUML 图表",
+      "download": {
+        "png": "[to be translated]:下载 PNG",
+        "svg": "[to be translated]:下载 SVG",
+        "failed": "[to be translated]:下载失败，请检查网络"
+      },
+      "tabs": {
+        "preview": "[to be translated]:预览",
+        "source": "[to be translated]:源码"
+      }
+    },
+    "company_template": {
+      "title": "[to be translated]:企业信息树"
+    },
+    "company_card": {
+      "title": "[to be translated]:企业卡片"
     }
   }
 }

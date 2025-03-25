@@ -143,7 +143,6 @@
       "translate": "翻譯",
       "topics.prompt": "話題提示詞",
       "topics.prompt.tips": "話題提示詞：針對目前話題提供額外的補充提示詞",
-      "topics.prompt.edit.title": "編輯話題提示詞",
       "artifacts.button.openExternal": "外部瀏覽器打開",
       "artifacts.preview.openExternal.error.content": "外部瀏覽器打開出錯"
     },
@@ -782,7 +781,14 @@
       "input.placeholder": "輸入文字進行翻譯",
       "output.placeholder": "翻譯",
       "processing": "翻譯中...",
-      "title": "翻譯"
+      "title": "翻譯",
+      "history": {
+        "title": "[to be translated]:翻译历史",
+        "empty": "[to be translated]:暂无翻译历史",
+        "clear": "[to be translated]:清空历史",
+        "delete": "[to be translated]:删除",
+        "clear_description": "[to be translated]:清空历史将删除所有翻译历史记录，是否继续？"
+      }
     },
     "tray": {
       "quit": "退出",
@@ -797,6 +803,24 @@
     },
     "docs": {
       "title": "幫助文件"
+    },
+    "plantuml": {
+      "title": "[to be translated]:PlantUML 图表",
+      "download": {
+        "png": "[to be translated]:下载 PNG",
+        "svg": "[to be translated]:下载 SVG",
+        "failed": "[to be translated]:下载失败，请检查网络"
+      },
+      "tabs": {
+        "preview": "[to be translated]:预览",
+        "source": "[to be translated]:源码"
+      }
+    },
+    "company_template": {
+      "title": "[to be translated]:企业信息树"
+    },
+    "company_card": {
+      "title": "[to be translated]:企业卡片"
     }
   }
 }

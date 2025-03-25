@@ -143,7 +143,6 @@
       "translate": "Translate",
       "topics.prompt": "Topic Prompts",
       "topics.prompt.tips": "Topic Prompts: Additional supplementary prompts provided for the current topic",
-      "topics.prompt.edit.title": "Edit Topic Prompts",
       "artifacts.button.openExternal": "Open in external browser",
       "artifacts.preview.openExternal.error.content": "Error opening the external browser."
     },
@@ -617,7 +616,11 @@
           "syncStatus": "Backup Status",
           "title": "WebDAV",
           "user": "WebDAV User"
-        }
+        },
+        "minute_interval_one": "[to be translated]:{{count}} 分钟",
+        "minute_interval_other": "[to be translated]:{{count}} 分钟",
+        "hour_interval_one": "[to be translated]:{{count}} 小时",
+        "hour_interval_other": "[to be translated]:{{count}} 小时"
       },
       "display.custom.css": "Custom CSS",
       "display.custom.css.placeholder": "/* Put custom CSS here */",
@@ -812,6 +815,12 @@
     },
     "docs": {
       "title": "Docs"
+    },
+    "company_template": {
+      "title": "[to be translated]:企业信息树"
+    },
+    "company_card": {
+      "title": "[to be translated]:企业卡片"
     }
   }
 }

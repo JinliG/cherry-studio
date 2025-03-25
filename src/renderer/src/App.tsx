@@ -15,6 +15,7 @@ import AgentsPage from './pages/agents/AgentsPage'
 import AppsPage from './pages/apps/AppsPage'
 import FilesPage from './pages/files/FilesPage'
 import HomePage from './pages/home/HomePage'
+import CompanyTemplatePage from './pages/investment/templates/ManagerPage'
 import KnowledgePage from './pages/knowledge/KnowledgePage'
 import PaintingsPage from './pages/paintings/PaintingsPage'
 import SettingsPage from './pages/settings/SettingsPage'
@@ -40,6 +41,8 @@ function App(): JSX.Element {
                     <Route path="/files" element={<FilesPage />} />
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/apps" element={<AppsPage />} />
+                    <Route path="/company_template" element={<CompanyTemplatePage />} />
+                    <Route path="/company_card" element={<KnowledgePage />} />
                     <Route path="/settings/*" element={<SettingsPage />} />
                   </Routes>
                 </HashRouter>

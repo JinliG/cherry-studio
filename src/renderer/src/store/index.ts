@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage'
 
 import agents from './agents'
 import assistants from './assistants'
+import company_templates from './company_templates'
 import knowledge from './knowledge'
 import llm from './llm'
 import migrate from './migrate'
@@ -23,7 +24,8 @@ const rootReducer = combineReducers({
   runtime,
   shortcuts,
   knowledge,
-  minapps
+  minapps,
+  company_templates
 })
 
 const persistedReducer = persistReducer(
@@ -59,5 +61,7 @@ export const useAppSelector = useSelector.withTypes<RootState>()
 export const useAppStore = useStore.withTypes<typeof store>()
 
 window.store = store
+
+console.log('--- store', store.getState())
 
 export default store

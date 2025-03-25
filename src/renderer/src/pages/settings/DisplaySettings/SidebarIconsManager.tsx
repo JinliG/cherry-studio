@@ -1,4 +1,4 @@
-import { CloseOutlined } from '@ant-design/icons'
+import { CloseOutlined, ClusterOutlined, DeliveredProcedureOutlined } from '@ant-design/icons'
 import { FileSearchOutlined, FolderOutlined, PictureOutlined, TranslationOutlined } from '@ant-design/icons'
 import {
   DragDropContext,
@@ -115,7 +115,9 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
       translate: <TranslationOutlined />,
       minapp: <i className="iconfont icon-appstore" />,
       knowledge: <FileSearchOutlined />,
-      files: <FolderOutlined />
+      files: <FolderOutlined />,
+      company_template: <ClusterOutlined />,
+      company_card: <DeliveredProcedureOutlined />
     }),
     []
   )
@@ -213,7 +215,7 @@ const IconList = styled.div`
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  overflow-y: hidden;
+  overflow-y: auto;
 `
 
 const IconItem = styled.div`

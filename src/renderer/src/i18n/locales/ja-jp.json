@@ -143,7 +143,6 @@
       "translate": "翻訳",
       "topics.prompt": "トピック提示語",
       "topics.prompt.tips": "トピック提示語：現在のトピックに対して追加の補足提示語を提供",
-      "topics.prompt.edit.title": "トピック提示語を編集する",
       "artifacts.button.openExternal": "外部ブラウザで開く",
       "artifacts.preview.openExternal.error.content": "外部ブラウザの起動に失敗しました。"
     },
@@ -606,25 +605,6 @@
           "title": "WebDAV",
           "user": "WebDAVユーザー"
         },
-        "webdav.autoSync": "自動バックアップ",
-        "webdav.autoSync.off": "オフ",
-        "webdav.backup.button": "WebDAVにバックアップ",
-        "webdav.host": "WebDAVホスト",
-        "webdav.host.placeholder": "http://localhost:8080",
-        "webdav.hours": "時間",
-        "webdav.lastSync": "最終同期",
-        "webdav.minutes": "分",
-        "webdav.noSync": "次回のバックアップを待っています",
-        "webdav.password": "WebDAVパスワード",
-        "webdav.path": "WebDAVパス",
-        "webdav.path.placeholder": "/backup",
-        "webdav.restore.button": "WebDAVから復元",
-        "webdav.restore.content": "WebDAVから復元すると、現在のデータが上書きされます。続行しますか？",
-        "webdav.restore.title": "WebDAVから復元",
-        "webdav.syncError": "バックアップエラー",
-        "webdav.syncStatus": "バックアップ状態",
-        "webdav.title": "WebDAV",
-        "webdav.user": "WebDAVユーザー",
         "minute_interval_one": "{{count}} 分",
         "minute_interval_other": "{{count}} 分",
         "hour_interval_one": "{{count}} 時間",
@@ -801,7 +781,14 @@
       "input.placeholder": "翻訳するテキストを入力",
       "output.placeholder": "翻訳",
       "processing": "翻訳中...",
-      "title": "翻訳"
+      "title": "翻訳",
+      "history": {
+        "title": "[to be translated]:翻译历史",
+        "empty": "[to be translated]:暂无翻译历史",
+        "clear": "[to be translated]:清空历史",
+        "delete": "[to be translated]:删除",
+        "clear_description": "[to be translated]:清空历史将删除所有翻译历史记录，是否继续？"
+      }
     },
     "tray": {
       "quit": "終了",
@@ -816,6 +803,24 @@
     },
     "docs": {
       "title": "ドキュメント"
+    },
+    "plantuml": {
+      "title": "[to be translated]:PlantUML 图表",
+      "download": {
+        "png": "[to be translated]:下载 PNG",
+        "svg": "[to be translated]:下载 SVG",
+        "failed": "[to be translated]:下载失败，请检查网络"
+      },
+      "tabs": {
+        "preview": "[to be translated]:预览",
+        "source": "[to be translated]:源码"
+      }
+    },
+    "company_template": {
+      "title": "[to be translated]:企业信息树"
+    },
+    "company_card": {
+      "title": "[to be translated]:企业卡片"
     }
   }
 }

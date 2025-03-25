@@ -151,6 +151,12 @@ export interface Painting {
   guidanceScale?: number
   promptEnhancement?: boolean
 }
+export interface CompanyTemplate {
+  id: string
+  name: string
+  structure: string
+  description?: string
+}
 
 export type MinAppType = {
   id?: string | number
@@ -288,4 +294,13 @@ export interface TranslateHistory {
   createdAt: string
 }
 
-export type SidebarIcon = 'assistants' | 'agents' | 'paintings' | 'translate' | 'minapp' | 'knowledge' | 'files'
+export type SidebarIcon =
+  | 'assistants'
+  | 'agents'
+  | 'paintings'
+  | 'translate'
+  | 'minapp'
+  | 'knowledge'
+  | 'files'
+  | 'company_template'
+  | 'company_card'
