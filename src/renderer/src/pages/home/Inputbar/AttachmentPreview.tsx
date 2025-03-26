@@ -17,7 +17,8 @@ interface Props {
 }
 
 const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic, assistant }) => {
-  const { attachedFile, attachedText, attachedPages } = topic
+  const { attachedText, attachedPages } = topic
+  const { attachedDocument } = assistant
   const { t } = useTranslation()
 
   const handleRemoveFile = (item: any) => {
@@ -87,17 +88,17 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
       )
     }
 
-    if (!isEmpty(attachedFile) && isEmpty(attachedPages) && isEmpty(assistant.knowledge_bases)) {
+    if (!isEmpty(attachedDocument) && isEmpty(attachedPages) && isEmpty(assistant.knowledge_bases)) {
       attachments.push(
-        <div key="attachedFile" className="attach-file">
+        <div key="attachedDocument" className="attach-file">
           {t('正在关联文档：')}
-          {attachedFile?.origin_name}
+          {attachedDocument?.origin_name}
         </div>
       )
     }
 
     return attachments
-  }, [files, attachedFile, attachedText, attachedPages, assistant.knowledge_bases])
+  }, [files, attachedDocument, attachedText, attachedPages, assistant.knowledge_bases])
 
   if (isEmpty(Attachments)) {
     return null

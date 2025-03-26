@@ -1,3 +1,4 @@
+import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
 import { Assistant, Topic } from '@renderer/types'
@@ -22,10 +23,9 @@ const Chat: FC<Props> = (props) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const { topicPosition, messageStyle, showAssistants } = useSettings()
   const { showTopics } = useShowTopics()
+  const { assistant: currentAssistant } = useAssistant(assistant.id)
 
   const [wrapperWidth, setWrapperWidth] = useState<number>(0)
-
-  const docFocusMode = !!activeTopic.attachedFile
 
   useEffect(() => {
     const handleResize = () => {
@@ -72,21 +72,21 @@ const Chat: FC<Props> = (props) => {
     const showRightTopics = showTopics && topicPosition === 'right'
     const minusAssistantsWidth = showAssistants ? '- var(--assistants-width)' : ''
     const minusRightTopicsWidth = showRightTopics ? '- var(--assistants-width)' : ''
-    const sidePageWidth = docFocusMode ? pageWidth : 0
+    const sidePageWidth = currentAssistant.attachedDocument ? pageWidth : 0
     return `calc(100vw - var(--sidebar-width) ${minusAssistantsWidth} ${minusRightTopicsWidth} - 5px - ${sidePageWidth}px)`
-  }, [showAssistants, showTopics, topicPosition, docFocusMode, pageWidth])
+  }, [showAssistants, showTopics, topicPosition, currentAssistant, pageWidth])
 
   return (
     <Container id="chat" className={messageStyle}>
       <Wrapper ref={wrapperRef}>
-        {docFocusMode && (
+        {currentAssistant.attachedDocument && (
           <div
             className="pdf-container"
             style={{
               width: pageWidth + 24
             }}>
             <PdfReader
-              assistant={assistant}
+              assistant={currentAssistant}
               topic={activeTopic}
               pageWidth={pageWidth}
               setActiveTopic={props.setActiveTopic}
@@ -107,12 +107,7 @@ const Chat: FC<Props> = (props) => {
             topic={activeTopic}
             setActiveTopic={props.setActiveTopic}
           />
-          <Inputbar
-            docFocusMode={docFocusMode}
-            assistant={assistant}
-            setActiveTopic={props.setActiveTopic}
-            activeTopic={activeTopic}
-          />
+          <Inputbar assistant={assistant} setActiveTopic={props.setActiveTopic} activeTopic={activeTopic} />
         </Main>
       </Wrapper>
       {topicPosition === 'right' && showTopics && (

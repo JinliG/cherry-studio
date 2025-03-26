@@ -152,9 +152,13 @@ const MessageItem: FC<Props> = ({
           }
 
           // wont read file content if knowledge base is enabled
-          if (topic.attachedFile && isEmpty(assistantWithModel.knowledge_bases) && isEmpty(topic.attachedPages)) {
+          if (
+            assistant.attachedDocument &&
+            isEmpty(assistantWithModel.knowledge_bases) &&
+            isEmpty(topic.attachedPages)
+          ) {
             const fileContent = await (
-              await window.api.file.read(topic.attachedFile?.id + topic.attachedFile?.ext)
+              await window.api.file.read(assistant.attachedDocument?.id + assistant.attachedDocument?.ext)
             ).trim()
             assistantWithModel.prompt = assistantWithModel.prompt
               ? `${assistantWithModel.prompt}\n${fileContent}`

@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
+import AssistantDocumentSettings from './AssistantDocumentSettings'
 import AssistantKnowledgeBaseSettings from './AssistantKnowledgeBaseSettings'
 import AssistantMessagesSettings from './AssistantMessagesSettings'
 import AssistantModelSettings from './AssistantModelSettings'
@@ -61,6 +62,10 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, ...props }) 
     {
       key: 'messages',
       label: t('assistants.settings.preset_messages')
+    },
+    {
+      key: 'document',
+      label: t('文档阅读设置')
     },
     showKnowledgeIcon && {
       key: 'knowledge_base',
@@ -118,6 +123,13 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, ...props }) 
           )}
           {menu === 'messages' && (
             <AssistantMessagesSettings
+              assistant={assistant}
+              updateAssistant={updateAssistant}
+              updateAssistantSettings={updateAssistantSettings}
+            />
+          )}
+          {menu === 'document' && (
+            <AssistantDocumentSettings
               assistant={assistant}
               updateAssistant={updateAssistant}
               updateAssistantSettings={updateAssistantSettings}

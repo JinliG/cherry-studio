@@ -37,12 +37,15 @@ const CompanyTemplatePage: FC = () => {
     {
       title: t('信息结构'),
       dataIndex: 'structure',
-      key: 'structure'
+      key: 'structure',
+      ellipsis: true,
+      width: 400
     },
     {
       title: '',
       dataIndex: 'operations',
       key: 'operations',
+      align: 'right',
       render: (_, record) => (
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => ManageCompanyTemplatePopup.edit(record.id)} />

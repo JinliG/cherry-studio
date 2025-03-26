@@ -15,6 +15,8 @@ export type Assistant = {
   settings?: Partial<AssistantSettings>
   messages?: AssistantMessage[]
   enableWebSearch?: boolean
+  companyTemplate?: CompanyTemplate
+  attachedDocument?: FileType
 }
 
 export type AssistantMessage = {
@@ -95,7 +97,6 @@ export type Topic = {
   messages: Message[]
   pinned?: boolean
   prompt?: string
-  attachedFile?: FileType
   attachedText?: string
   attachedPages?: AttachedPage[]
 }

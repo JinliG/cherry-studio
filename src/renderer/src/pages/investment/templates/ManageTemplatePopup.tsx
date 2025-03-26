@@ -4,10 +4,9 @@ import { CompanyTemplate } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { Form, FormInstance, Input, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
-import { useRef, useState } from 'react'
+import { JsonData, JsonEditor } from 'json-edit-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import JSONInput from 'react-json-editor-ajrm'
-import locale from 'react-json-editor-ajrm/locale/zh-cn'
 
 interface Props {
   resolve: (data: CompanyTemplate | null) => void
@@ -25,29 +24,34 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   const [form] = Form.useForm()
   const { t } = useTranslation()
   const { addCompanyTemplate } = useCompanyTemplates()
-  const { template: current = {}, updateCompanyTemplate } = useCompanyTemplate(id || '')
+  const { template: current, updateCompanyTemplate } = useCompanyTemplate(id || '')
   const formRef = useRef<FormInstance>(null)
 
   const [open, setOpen] = useState(true)
+  const [jsonData, setJsonData] = useState({})
 
   const onFinish = (values: FieldType) => {
     if (values.name.trim() === '' || values.structure.trim() === '') {
       return
     }
 
-    const template: CompanyTemplate = {
-      id: uuid(),
-      ...current,
-      ...values
-    }
+    const payload: CompanyTemplate = isEditing
+      ? {
+          ...current,
+          ...values
+        }
+      : {
+          id: uuid(),
+          ...values
+        }
 
     if (isEditing) {
-      updateCompanyTemplate(template)
+      updateCompanyTemplate(payload)
     } else {
-      addCompanyTemplate(template)
+      addCompanyTemplate(payload)
     }
 
-    resolve(template)
+    resolve(payload)
     setOpen(false)
   }
 
@@ -58,6 +62,27 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   const onClose = () => {
     resolve(null)
   }
+
+  const onSetJsonData = (data: JsonData) => {
+    setJsonData(data)
+    try {
+      form.setFieldValue('structure', JSON.stringify(data))
+    } catch (error) {
+      console.error('--- ', error)
+    }
+  }
+
+  useEffect(() => {
+    if (isEditing) {
+      let jsonData = {}
+      try {
+        jsonData = JSON.parse(current?.structure)
+      } catch (error) {
+        console.error('--- ', error)
+      }
+      setJsonData(jsonData)
+    }
+  }, [isEditing, current?.structure])
 
   return (
     <Modal
@@ -91,23 +116,14 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
           label={t('company_template.add.structure')}
           rules={[{ required: true }]}
           style={{ position: 'relative' }}>
-          <JSONInput
-            id="a_unique_id"
-            theme=""
-            placeholder={form.getFieldValue('structure')}
-            locale={locale}
-            height="520px"
-            onChange={(v) => {
-              form.setFieldValue('structure', v.json)
-            }}
-          />
+          <JsonEditor data={jsonData} setData={onSetJsonData} />
         </Form.Item>
         <Form.Item
           name="prompt"
           label={t('company_template.add.desc')}
           rules={[{ required: true }]}
           style={{ position: 'relative' }}>
-          <TextArea placeholder={t('company_template.add.desc.placeholder')} spellCheck={false} rows={10} />
+          <TextArea placeholder={t('company_template.add.desc.placeholder')} spellCheck={false} rows={4} />
         </Form.Item>
       </Form>
     </Modal>

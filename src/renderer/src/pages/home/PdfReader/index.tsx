@@ -55,14 +55,16 @@ const PdfReader: React.FC<Props> = (props) => {
 
   useEffect(() => {
     const loadFile = async () => {
-      if (topic.attachedFile) {
-        const { data, mime } = await window.api.file.binaryFile(topic.attachedFile.id + topic.attachedFile.ext)
-        setFile(new File([data], topic.attachedFile.name, { type: mime }))
+      if (assistant.attachedDocument) {
+        const { data, mime } = await window.api.file.binaryFile(
+          assistant.attachedDocument.id + assistant.attachedDocument.ext
+        )
+        setFile(new File([data], assistant.attachedDocument.name, { type: mime }))
       }
     }
 
     loadFile()
-  }, [topic.attachedFile])
+  }, [assistant.attachedDocument])
 
   const checked = useMemo(() => {
     return !!find(attachedPages, (page) => page.index === pageCurrent)
