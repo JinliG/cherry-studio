@@ -40,6 +40,7 @@ import InputSuggestions from '../components/InputSuggestions'
 import NarrowLayout from '../Messages/NarrowLayout'
 import AttachmentButton from './AttachmentButton'
 import AttachmentPreview from './AttachmentPreview'
+import CompanyTemplateButton from './CompanyTemplateButton'
 import KnowledgeBaseButton from './KnowledgeBaseButton'
 import MentionModelsButton from './MentionModelsButton'
 import MentionModelsInput from './MentionModelsInput'
@@ -509,6 +510,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
             topic={activeTopic}
             setActiveTopic={setActiveTopic}
             updateTopic={updateTopic}
+            updateAssistant={updateAssistant}
             files={files}
             setFiles={setFiles}
           />
@@ -594,6 +596,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
                   disabled={files.length > 0}
                 />
               )}
+              <CompanyTemplateButton assistant={assistant} ToolbarButton={ToolbarButton} />
               <AttachmentButton model={model} files={files} setFiles={setFiles} ToolbarButton={ToolbarButton} />
               <Tooltip placement="top" title={t('chat.input.new.context', { Command: newContextShortcut })} arrow>
                 <ToolbarButton type="text" onClick={onNewContext}>

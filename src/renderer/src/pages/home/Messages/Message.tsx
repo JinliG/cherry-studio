@@ -1,4 +1,5 @@
 import { FONT_FAMILY } from '@renderer/config/constant'
+import { ATTACHED_DOCUMENT_PROMPT, ATTACHED_TEMPLATE_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useModel } from '@renderer/hooks/useModel'
@@ -143,26 +144,36 @@ const MessageItem: FC<Props> = ({
               : topic.prompt
           }
 
+          // add page content context
           if (!isEmpty(topic.attachedPages)) {
             const pageContent =
               topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+            const pagePrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
             assistantWithModel.prompt = assistantWithModel.prompt
-              ? `${assistantWithModel.prompt}\n${pageContent}`
-              : pageContent
+              ? `${assistantWithModel.prompt}\n${pagePrompt}`
+              : pagePrompt
           }
 
-          // wont read file content if knowledge base is enabled
-          if (
-            assistant.attachedDocument &&
-            isEmpty(assistantWithModel.knowledge_bases) &&
-            isEmpty(topic.attachedPages)
-          ) {
-            const fileContent = await (
+          // add file content context
+          if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
+            const documentContent = await (
               await window.api.file.read(assistant.attachedDocument?.id + assistant.attachedDocument?.ext)
             ).trim()
+            const documentPrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', documentContent)
             assistantWithModel.prompt = assistantWithModel.prompt
-              ? `${assistantWithModel.prompt}\n${fileContent}`
-              : fileContent
+              ? `${assistantWithModel.prompt}\n${documentPrompt}`
+              : documentContent
+          }
+
+          // add company template context
+          if (assistant.companyTemplate && !assistant.companyTemplate.disabled) {
+            const templatePrompt = ATTACHED_TEMPLATE_PROMPT.replace(
+              '{company_template}',
+              assistant.companyTemplate.structure
+            )
+            assistantWithModel.prompt = assistantWithModel.prompt
+              ? `${assistantWithModel.prompt}\n${templatePrompt}`
+              : templatePrompt
           }
 
           fetchChatCompletion({

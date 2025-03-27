@@ -15,8 +15,8 @@ export type Assistant = {
   settings?: Partial<AssistantSettings>
   messages?: AssistantMessage[]
   enableWebSearch?: boolean
-  companyTemplate?: CompanyTemplate
-  attachedDocument?: FileType
+  companyTemplate?: CompanyTemplate & { disabled?: boolean }
+  attachedDocument?: FileType & { disabled?: boolean }
 }
 
 export type AssistantMessage = {

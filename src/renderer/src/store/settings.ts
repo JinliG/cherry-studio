@@ -17,15 +17,12 @@ export type SidebarIcon =
 
 export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = [
   'assistants',
-  'agents',
-  'paintings',
-  'translate',
-  'minapp',
   'knowledge',
   'files',
   'company_template',
   'company_card'
 ]
+export const DEFAULT_HIDE_SIDEBAR_ICONS: SidebarIcon[] = ['agents', 'paintings', 'translate', 'minapp']
 
 export interface SettingsState {
   showAssistants: boolean
@@ -129,7 +126,7 @@ const initialState: SettingsState = {
   topicNamingPrompt: '',
   sidebarIcons: {
     visible: DEFAULT_SIDEBAR_ICONS,
-    disabled: []
+    disabled: DEFAULT_HIDE_SIDEBAR_ICONS
   },
   narrowMode: false,
   enableQuickAssistant: false,

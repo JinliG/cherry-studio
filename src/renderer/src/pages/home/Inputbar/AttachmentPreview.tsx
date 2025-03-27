@@ -1,7 +1,7 @@
 import { CloseOutlined } from '@ant-design/icons'
 import FileManager from '@renderer/services/FileManager'
 import { Assistant, FileType, Topic } from '@renderer/types'
-import { Tag, Upload } from 'antd'
+import { Radio, Space, Tag, Upload } from 'antd'
 import { filter, isEmpty, map } from 'lodash'
 import { FC, ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import styled from 'styled-components'
 
 interface Props {
   assistant: Assistant
+  updateAssistant: (assistant: Assistant) => void
   files: FileType[]
   setFiles: (files: FileType[]) => void
   topic: Topic
@@ -16,9 +17,17 @@ interface Props {
   updateTopic: (topic: Topic) => void
 }
 
-const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic, assistant }) => {
+const AttachmentPreview: FC<Props> = ({
+  files,
+  setFiles,
+  topic,
+  setActiveTopic,
+  updateTopic,
+  assistant,
+  updateAssistant
+}) => {
   const { attachedText, attachedPages } = topic
-  const { attachedDocument } = assistant
+  const { attachedDocument, companyTemplate: attachedTemplate } = assistant
   const { t } = useTranslation()
 
   const handleRemoveFile = (item: any) => {
@@ -41,8 +50,58 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
     setActiveTopic(updatedTopic)
   }
 
+  const onTriggerAttachedDocumentEnabled = () => {
+    if (attachedDocument) {
+      updateAssistant({
+        ...assistant,
+        attachedDocument: {
+          ...attachedDocument,
+          disabled: !attachedDocument.disabled
+        }
+      })
+    }
+  }
+
+  const onTriggerAttachedTemplateEnabled = () => {
+    console.log('--- change', !attachedTemplate?.disabled)
+    if (attachedTemplate) {
+      updateAssistant({
+        ...assistant,
+        companyTemplate: {
+          ...attachedTemplate,
+          disabled: !attachedTemplate.disabled
+        }
+      })
+    }
+  }
+
   const Attachments = useMemo(() => {
     const attachments: ReactNode[] = []
+
+    if (attachedDocument || attachedTemplate) {
+      attachments.push(
+        <Space>
+          {attachedDocument && (
+            <RadioButton
+              key="attachedDocument"
+              checked={!attachedDocument.disabled}
+              onClick={onTriggerAttachedDocumentEnabled}>
+              {!attachedDocument.disabled && t('正在关联 ')}
+              {attachedDocument?.origin_name}
+            </RadioButton>
+          )}
+          {attachedTemplate && (
+            <RadioButton
+              key="attachedTemplate"
+              checked={!attachedTemplate.disabled}
+              onClick={onTriggerAttachedTemplateEnabled}>
+              {!attachedTemplate.disabled && t('正在使用 ')}
+              {attachedTemplate.name}
+            </RadioButton>
+          )}
+        </Space>
+      )
+    }
 
     if (attachedText) {
       attachments.push(
@@ -88,17 +147,8 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
       )
     }
 
-    if (!isEmpty(attachedDocument) && isEmpty(attachedPages) && isEmpty(assistant.knowledge_bases)) {
-      attachments.push(
-        <div key="attachedDocument" className="attach-file">
-          {t('正在关联文档：')}
-          {attachedDocument?.origin_name}
-        </div>
-      )
-    }
-
     return attachments
-  }, [files, attachedDocument, attachedText, attachedPages, assistant.knowledge_bases])
+  }, [files, attachedDocument, attachedTemplate, attachedText, attachedPages])
 
   if (isEmpty(Attachments)) {
     return null
@@ -112,14 +162,6 @@ const ContentContainer = styled.div`
   overflow-y: auto;
   width: 100%;
   padding: 10px 15px 0;
-
-  .attach-file {
-    width: fit-content;
-    padding: 2px 8px;
-    background-color: var(--color-primary);
-    border-radius: 4px;
-    color: var(--color-white);
-  }
 
   .attach-text {
     padding: 2px 6px;
@@ -140,6 +182,19 @@ const ContentContainer = styled.div`
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+`
+
+const RadioButton = styled(Radio.Button)`
+  width: fit-content;
+  max-width: 240px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.6;
+  &.ant-radio-button-wrapper-checked {
+    opacity: 1;
   }
 `
 
