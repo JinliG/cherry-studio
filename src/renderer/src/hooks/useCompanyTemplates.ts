@@ -1,11 +1,15 @@
 import { useAppDispatch, useAppSelector } from '@renderer/store'
 import {
+  addCompanyDiagram,
   addCompanyTemplate,
+  removeCompanyDiagram,
   removeCompanyTemplate,
+  updateCompanyDiagram,
+  updateCompanyDiagrams,
   updateCompanyTemplate,
   updateCompanyTemplates
 } from '@renderer/store/company_templates'
-import { CompanyTemplate } from '@renderer/types'
+import { CompanyDiagram, CompanyTemplate } from '@renderer/types'
 
 export function useCompanyTemplates() {
   const templates = useAppSelector((state) => state.company_templates.templates)
@@ -28,5 +32,28 @@ export function useCompanyTemplate(id: string) {
   return {
     template,
     updateCompanyTemplate: (template: CompanyTemplate) => dispatch(updateCompanyTemplate(template))
+  }
+}
+
+export function useCompanyDiagrams() {
+  const diagrams = useAppSelector((state) => state.company_templates.diagrams)
+  const dispatch = useAppDispatch()
+
+  return {
+    diagrams,
+    updateCompanyDiagrams: (diagrams: CompanyDiagram[]) => dispatch(updateCompanyDiagrams(diagrams)),
+    addCompanyDiagram: (diagram: CompanyDiagram) => dispatch(addCompanyDiagram(diagram)),
+    removeCompanyDiagram: (id: string) => dispatch(removeCompanyDiagram({ id }))
+  }
+}
+
+export function useCompanyDiagram(id: string) {
+  const diagram = useAppSelector((state) => state.company_templates.diagrams.find((a) => a.id === id)) as CompanyDiagram
+  const dispatch = useAppDispatch()
+
+  return {
+    diagram,
+    updateCompanyDiagram: (diagram: CompanyDiagram) => dispatch(updateCompanyDiagram(diagram)),
+    removeCompanyDiagram: () => dispatch(removeCompanyDiagram({ id }))
   }
 }

@@ -1,12 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { CompanyTemplate } from '@renderer/types'
+import { CompanyDiagram, CompanyTemplate } from '@renderer/types'
 
 export interface CompanyTemplatesState {
   templates: CompanyTemplate[]
+  diagrams: CompanyDiagram[]
 }
 
 const initialState: CompanyTemplatesState = {
-  templates: []
+  templates: [],
+  diagrams: []
 }
 
 const companyTemplatesSlice = createSlice({
@@ -23,13 +25,32 @@ const companyTemplatesSlice = createSlice({
       state.templates = state.templates.filter((c) => c.id !== action.payload.id)
     },
     updateCompanyTemplate: (state, action: PayloadAction<CompanyTemplate>) => {
-      console.log('--- xxx', state, action.payload)
       state.templates = state.templates.map((c) => (c.id === action.payload.id ? action.payload : c))
+    },
+    updateCompanyDiagrams: (state, action: PayloadAction<CompanyTemplate[]>) => {
+      state.diagrams = action.payload
+    },
+    addCompanyDiagram: (state, action: PayloadAction<CompanyDiagram>) => {
+      state.diagrams.push(action.payload)
+    },
+    removeCompanyDiagram: (state, action: PayloadAction<{ id: string }>) => {
+      state.diagrams = state.diagrams.filter((c) => c.id !== action.payload.id)
+    },
+    updateCompanyDiagram: (state, action: PayloadAction<CompanyDiagram>) => {
+      state.diagrams = state.diagrams.map((c) => (c.id === action.payload.id ? action.payload : c))
     }
   }
 })
 
-export const { updateCompanyTemplates, addCompanyTemplate, removeCompanyTemplate, updateCompanyTemplate } =
-  companyTemplatesSlice.actions
+export const {
+  updateCompanyTemplates,
+  addCompanyTemplate,
+  removeCompanyTemplate,
+  updateCompanyTemplate,
+  updateCompanyDiagrams,
+  addCompanyDiagram,
+  removeCompanyDiagram,
+  updateCompanyDiagram
+} = companyTemplatesSlice.actions
 
 export default companyTemplatesSlice.reducer

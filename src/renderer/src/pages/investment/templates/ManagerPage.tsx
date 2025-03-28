@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { Navbar, NavbarCenter } from '@renderer/components/app/Navbar'
 import Scrollbar from '@renderer/components/Scrollbar'
-import { useCompanyTemplates } from '@renderer/hooks/useCompanyTemplates'
+import { useCompanyDiagrams, useCompanyTemplates } from '@renderer/hooks/useCompanyTemplates'
 import { CompanyTemplate } from '@renderer/types'
 import { modalConfirm } from '@renderer/utils'
 import { Button, Flex, Space, Table, Tabs as TabsAntd, Typography } from 'antd'
@@ -10,6 +10,7 @@ import { FC, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
+import ManageCompanyDiagramPopup from './ManageDiagramPopup'
 import ManageCompanyTemplatePopup from './ManageTemplatePopup'
 
 const { Title } = Typography
@@ -17,8 +18,9 @@ const { Title } = Typography
 const CompanyTemplatePage: FC = () => {
   const { t, i18n } = useTranslation()
   const { templates, removeCompanyTemplate } = useCompanyTemplates()
+  const { diagrams, removeCompanyDiagram } = useCompanyDiagrams()
 
-  const deleteConfirm = (id: string) => {
+  const deleteTemplateConfirm = (id: string) => {
     modalConfirm({
       title: t('确定删除该模板吗？'),
       content: t('删除后不可恢复，请谨慎操作。'),
@@ -28,7 +30,17 @@ const CompanyTemplatePage: FC = () => {
     })
   }
 
-  const columns: ColumnsType<CompanyTemplate> = [
+  const deleteDiagramConfirm = (id: string) => {
+    modalConfirm({
+      title: t('确定删除该图谱吗？'),
+      content: t('删除后不可恢复，请谨慎操作。'),
+      onOk: () => {
+        removeCompanyDiagram(id)
+      }
+    })
+  }
+
+  const templateColumns: ColumnsType<CompanyTemplate> = [
     {
       title: t('名称'),
       dataIndex: 'name',
@@ -49,7 +61,34 @@ const CompanyTemplatePage: FC = () => {
       render: (_, record) => (
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => ManageCompanyTemplatePopup.edit(record.id)} />
-          <Button type="text" icon={<DeleteOutlined />} onClick={() => deleteConfirm(record.id)} />
+          <Button type="text" icon={<DeleteOutlined />} onClick={() => deleteTemplateConfirm(record.id)} />
+        </Space>
+      )
+    }
+  ]
+
+  const diagramColumns: ColumnsType<CompanyTemplate> = [
+    {
+      title: t('名称'),
+      dataIndex: 'name',
+      key: 'name'
+    },
+    {
+      title: t('信息结构'),
+      dataIndex: 'structure',
+      key: 'structure',
+      ellipsis: true,
+      width: 400
+    },
+    {
+      title: '',
+      dataIndex: 'operations',
+      key: 'operations',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Button type="text" icon={<EditOutlined />} onClick={() => ManageCompanyDiagramPopup.edit(record.id)} />
+          <Button type="text" icon={<DeleteOutlined />} onClick={() => deleteDiagramConfirm(record.id)} />
         </Space>
       )
     }
@@ -70,7 +109,7 @@ const CompanyTemplatePage: FC = () => {
                 {t('新建模板')}
               </Button>
             </Flex>
-            <Table columns={columns} dataSource={templates} />
+            <Table columns={templateColumns} dataSource={templates} />
           </TabContent>
         )
       },
@@ -79,14 +118,20 @@ const CompanyTemplatePage: FC = () => {
         key: 'table',
         children: (
           <TabContent key="table">
-            <Title level={5} key="table" style={{ marginBottom: 10 }}>
-              {t('企业信息模板')}
-            </Title>
+            <Flex justify="space-between">
+              <Title level={5} key="table" style={{ marginBottom: 10 }}>
+                {t('企业信息图谱')}
+              </Title>
+              <Button type="primary" onClick={() => ManageCompanyDiagramPopup.show()}>
+                {t('新建图谱')}
+              </Button>
+            </Flex>
+            <Table columns={diagramColumns} dataSource={diagrams} />
           </TabContent>
         )
       }
     ]
-  }, [])
+  }, [templates, diagrams])
 
   return (
     <Container>
@@ -137,15 +182,6 @@ const TabContent = styled(Scrollbar)`
   will-change: transform;
   -webkit-font-smoothing: antialiased;
 `
-
-// const EmptyView = styled.div`
-//   display: flex;
-//   flex: 1;
-//   justify-content: center;
-//   align-items: center;
-//   font-size: 16px;
-//   color: var(--color-text-secondary);
-// `
 
 const Tabs = styled(TabsAntd)<{ $language: string }>`
   display: flex;

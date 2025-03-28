@@ -159,6 +159,13 @@ export interface CompanyTemplate {
   description?: string
 }
 
+export interface CompanyDiagram {
+  id: string
+  name: string
+  structure: string
+  description?: string
+}
+
 export type MinAppType = {
   id?: string | number
   name: string
