@@ -20,24 +20,26 @@ const CompanyTemplatePage: FC = () => {
   const { templates, removeCompanyTemplate } = useCompanyTemplates()
   const { diagrams, removeCompanyDiagram } = useCompanyDiagrams()
 
-  const deleteTemplateConfirm = (id: string) => {
-    modalConfirm({
+  const deleteTemplateConfirm = async (id: string) => {
+    const confirmed = await modalConfirm({
       title: t('确定删除该模板吗？'),
-      content: t('删除后不可恢复，请谨慎操作。'),
-      onOk: () => {
-        removeCompanyTemplate(id)
-      }
+      content: t('删除后不可恢复，请谨慎操作。')
     })
+
+    if (confirmed) {
+      removeCompanyTemplate(id)
+    }
   }
 
-  const deleteDiagramConfirm = (id: string) => {
-    modalConfirm({
+  const deleteDiagramConfirm = async (id: string) => {
+    const confirmed = await modalConfirm({
       title: t('确定删除该图谱吗？'),
-      content: t('删除后不可恢复，请谨慎操作。'),
-      onOk: () => {
-        removeCompanyDiagram(id)
-      }
+      content: t('删除后不可恢复，请谨慎操作。')
     })
+
+    if (confirmed) {
+      removeCompanyDiagram(id)
+    }
   }
 
   const templateColumns: ColumnsType<CompanyTemplate> = [
