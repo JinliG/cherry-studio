@@ -91,6 +91,9 @@ const CompanyTemplatePage: FC = () => {
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => ManageCompanyDiagramPopup.edit(record.id)} />
           <Button type="text" icon={<DeleteOutlined />} onClick={() => deleteDiagramConfirm(record.id)} />
+          <Button type="text" onClick={() => ManageCompanyDiagramPopup.preview(record.id)}>
+            {t('预览')}
+          </Button>
         </Space>
       )
     }

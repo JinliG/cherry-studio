@@ -298,15 +298,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0-rc.0":
-  version: 7.27.0
-  resolution: "@babel/runtime@npm:7.27.0"
-  dependencies:
-    regenerator-runtime: "npm:^0.14.0"
-  checksum: 10c0/35091ea9de48bd7fd26fb177693d64f4d195eb58ab2b142b893b7f3fa0f1d7c677604d36499ae0621a3703f35ba0c6a8f6c572cc8f7dc0317213841e493cf663
-  languageName: node
-  linkType: hard
-
 "@babel/runtime@npm:^7.10.1, @babel/runtime@npm:^7.10.4, @babel/runtime@npm:^7.11.1, @babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.1, @babel/runtime@npm:^7.16.7, @babel/runtime@npm:^7.18.0, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.0, @babel/runtime@npm:^7.20.7, @babel/runtime@npm:^7.21.0, @babel/runtime@npm:^7.22.5, @babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.23.6, @babel/runtime@npm:^7.23.9, @babel/runtime@npm:^7.24.1, @babel/runtime@npm:^7.24.4, @babel/runtime@npm:^7.24.7, @babel/runtime@npm:^7.24.8, @babel/runtime@npm:^7.25.7, @babel/runtime@npm:^7.26.0, @babel/runtime@npm:^7.7.2, @babel/runtime@npm:^7.9.2":
   version: 7.26.0
   resolution: "@babel/runtime@npm:7.26.0"
@@ -2715,15 +2706,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-json-editor-ajrm@npm:^2":
-  version: 2.5.6
-  resolution: "@types/react-json-editor-ajrm@npm:2.5.6"
-  dependencies:
-    "@types/react": "npm:*"
-  checksum: 10c0/4ea04a01639a0cbf2b06fdf4cac8a491602e9f0a4c57b71b77f2fedfc908d8f21cc53d6b8747cb4fadc84cade275e52bd8304c5da63b8ae229a22ac506111412
-  languageName: node
-  linkType: hard
-
 "@types/react@npm:*":
   version: 19.0.3
   resolution: "@types/react@npm:19.0.3"
@@ -3029,7 +3011,6 @@ __metadata:
     "@types/react": "npm:^18.2.48"
     "@types/react-dom": "npm:^18.2.18"
     "@types/react-infinite-scroll-component": "npm:^5.0.0"
-    "@types/react-json-editor-ajrm": "npm:^2"
     "@types/tinycolor2": "npm:^1"
     "@vitejs/plugin-react": "npm:^4.2.1"
     adm-zip: "npm:^0.5.16"
@@ -3062,6 +3043,7 @@ __metadata:
     eslint-plugin-unused-imports: "npm:^4.0.0"
     fs-extra: "npm:^11.2.0"
     html2canvas: "npm:^1.4.1"
+    html2canvas-pro: "npm:^1.5.8"
     i18next: "npm:^23.11.5"
     json-edit-react: "npm:^1.24.0"
     lodash: "npm:^4.17.21"
@@ -3075,7 +3057,6 @@ __metadata:
     react-hotkeys-hook: "npm:^4.6.1"
     react-i18next: "npm:^14.1.2"
     react-infinite-scroll-component: "npm:^6.1.0"
-    react-json-editor-ajrm: "npm:^2.5.14"
     react-markdown: "npm:^9.0.1"
     react-pdf: "npm:^9.2.1"
     react-redux: "npm:^9.1.2"
@@ -7304,6 +7285,16 @@ __metadata:
   version: 3.0.0
   resolution: "html-void-elements@npm:3.0.0"
   checksum: 10c0/a8b9ec5db23b7c8053876dad73a0336183e6162bf6d2677376d8b38d654fdc59ba74fdd12f8812688f7db6fad451210c91b300e472afc0909224e0a44c8610d2
+  languageName: node
+  linkType: hard
+
+"html2canvas-pro@npm:^1.5.8":
+  version: 1.5.8
+  resolution: "html2canvas-pro@npm:1.5.8"
+  dependencies:
+    css-line-break: "npm:^2.1.0"
+    text-segmentation: "npm:^1.0.3"
+  checksum: 10c0/aab3cfd1799ba2999e6e6cf668f91ad9ee83131e8f8512fdee966b07ef6ac57aae641b471399ce18e823630f7aba534653e6c495c39a4649de87fea6aa83301c
   languageName: node
   linkType: hard
 
@@ -11896,18 +11887,6 @@ __metadata:
   version: 18.3.1
   resolution: "react-is@npm:18.3.1"
   checksum: 10c0/f2f1e60010c683479e74c63f96b09fb41603527cd131a9959e2aee1e5a8b0caf270b365e5ca77d4a6b18aae659b60a86150bb3979073528877029b35aecd2072
-  languageName: node
-  linkType: hard
-
-"react-json-editor-ajrm@npm:^2.5.14":
-  version: 2.5.14
-  resolution: "react-json-editor-ajrm@npm:2.5.14"
-  dependencies:
-    "@babel/runtime": "npm:^7.0.0-rc.0"
-  peerDependencies:
-    react: ">=16.2.0"
-    react-dom: ">=16.2.0"
-  checksum: 10c0/872ef9b1712d3115e69c35491871a02019a7467a59616585a8e1e2c396e635ab651c474b92a77ca03b016fa4131bceb0c607270685178c9b6f4bef75bf7628a3
   languageName: node
   linkType: hard
 

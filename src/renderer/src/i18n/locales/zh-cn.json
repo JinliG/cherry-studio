@@ -309,7 +309,22 @@
       "urls": "网址"
     },
     "company_template": {
-      "title": "企业信息树"
+      "title": "企业信息树",
+      "add": {
+        "title": "新建",
+        "name": "名称",
+        "name_placeholder": "请输入名称",
+        "structure": "结构化数据",
+        "desc": "描述",
+        "desc_placeholder": "请输入描述"
+      },
+      "submit": "提交",
+      "template": {
+        "title": "企业信息模板"
+      },
+      "diagram": {
+        "title": "企业信息图谱"
+      }
     },
     "company_card": {
       "title": "企业卡片"

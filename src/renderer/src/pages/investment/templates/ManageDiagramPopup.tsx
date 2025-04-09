@@ -2,12 +2,15 @@ import { TopView } from '@renderer/components/TopView'
 import { useCompanyDiagram, useCompanyDiagrams } from '@renderer/hooks/useCompanyTemplates'
 import { CompanyDiagram } from '@renderer/types'
 import { uuid } from '@renderer/utils'
-import { Form, FormInstance, Input, Modal, Switch } from 'antd'
+import { Button, Flex, Form, FormInstance, Input, Modal, Switch } from 'antd'
 import { Descriptions } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
+import html2canvas from 'html2canvas-pro'
 import { JsonData, JsonEditor } from 'json-edit-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import SimpleMarkdown from '../SimpleMarkdown'
 
 interface Props {
   resolve: (data: CompanyDiagram | null) => void
@@ -80,29 +83,38 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   }
 
   useEffect(() => {
-    if (isEditing) {
-      let jsonData = {}
-      try {
-        jsonData = JSON.parse(current?.structure)
-      } catch (error) {
-        console.error('--- ', error)
-      }
-      setJsonData(jsonData)
-
-      // 转换 jsonData 为 descriptionData
-      const transformedData = Object.entries(jsonData).reduce(
-        (acc, [groupName, groupData]: [any, any]) => {
-          acc[groupName] = Object.entries(groupData).map(([fieldName, fieldData]: [any, any]) => ({
-            label: fieldName,
-            value: fieldData.value
-          }))
-          return acc
-        },
-        {} as Record<string, { label: string; value: string }[]>
-      )
-
-      setDescriptionData(transformedData)
+    let jsonData = {}
+    try {
+      jsonData = JSON.parse(current?.structure)
+    } catch (error) {
+      console.error('--- ', error)
     }
+    setJsonData(jsonData)
+
+    // 转换 jsonData 为 descriptionData
+    const transformedData = Object.entries(jsonData).reduce(
+      (acc, [groupName, groupData]: [any, any]) => {
+        console.log('--- groupData', groupData)
+        if (Array.isArray(groupData)) {
+          acc[groupName] = groupData.map(({ name, value }) => ({
+            label: name,
+            value
+          }))
+        } else {
+          acc[groupName] = [
+            {
+              label: groupName,
+              value: groupData.value
+            }
+          ]
+        }
+
+        return acc
+      },
+      {} as Record<string, { label: string; value: string }[]>
+    )
+
+    setDescriptionData(transformedData)
   }, [isEditing, current?.structure])
 
   return (
@@ -114,7 +126,6 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
       maskClosable={false}
       afterClose={onClose}
       okText={t('company_template.add.title')}
-      width={800}
       styles={{
         body: {
           maxHeight: '65vh',
@@ -131,7 +142,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
         onFinish={onFinish}
         initialValues={isEditing ? current : {}}>
         <Form.Item name="name" label={t('company_template.add.name')} rules={[{ required: true }]}>
-          <Input placeholder={t('company_template.add.name.placeholder')} spellCheck={false} allowClear />
+          <Input placeholder={t('company_template.add.name_placeholder')} spellCheck={false} allowClear />
         </Form.Item>
         <Form.Item
           name="structure"
@@ -139,15 +150,13 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
           rules={[{ required: true }]}
           style={{ position: 'relative' }}>
           <div>
-            {isEditing && (
-              <Switch
-                style={{ marginBottom: 12 }}
-                checked={isPreview}
-                onChange={onTogglePreview}
-                checkedChildren={t('切换编辑')}
-                unCheckedChildren={t('切换预览')}
-              />
-            )}
+            <Switch
+              style={{ marginBottom: 12 }}
+              checked={isPreview}
+              onChange={onTogglePreview}
+              checkedChildren={t('切换编辑')}
+              unCheckedChildren={t('切换预览')}
+            />
             {isPreview ? (
               <Descriptions column={1} size="small">
                 {Object.entries(descriptionData).map(([groupName, fields]) => (
@@ -163,7 +172,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
                       column={2}>
                       {fields.map((field, index) => (
                         <Descriptions.Item key={index} label={field.label}>
-                          {field.value}
+                          <SimpleMarkdown>{field.value}</SimpleMarkdown>
                         </Descriptions.Item>
                       ))}
                     </Descriptions>
@@ -175,14 +184,123 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
             )}
           </div>
         </Form.Item>
-        <Form.Item
-          name="prompt"
-          label={t('company_template.add.desc')}
-          rules={[{ required: true }]}
-          style={{ position: 'relative' }}>
-          <TextArea placeholder={t('company_template.add.desc.placeholder')} spellCheck={false} rows={4} />
+        <Form.Item name="prompt" label={t('company_template.add.desc')} style={{ position: 'relative' }}>
+          <TextArea placeholder={t('company_template.add.desc_placeholder')} spellCheck={false} rows={4} />
         </Form.Item>
       </Form>
+    </Modal>
+  )
+}
+
+const PreviewContainer: React.FC<Props> = ({ resolve, id }) => {
+  const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { diagram: current } = useCompanyDiagram(id)
+  const formRef = useRef<FormInstance>(null)
+
+  const [open, setOpen] = useState(true)
+  const [descriptionData, setDescriptionData] = useState<Record<string, { label: string; value: string }[]>>({})
+
+  const onCancel = () => {
+    setOpen(false)
+  }
+
+  const onClose = () => {
+    resolve(null)
+  }
+
+  useEffect(() => {
+    let jsonData = {}
+    try {
+      jsonData = JSON.parse(current?.structure)
+    } catch (error) {
+      console.error('--- ', error)
+    }
+
+    // 转换 jsonData 为 descriptionData
+    const transformedData = Object.entries(jsonData).reduce(
+      (acc, [groupName, groupData]: [any, any]) => {
+        if (Array.isArray(groupData)) {
+          acc[groupName] = groupData.map(({ name, value }) => ({
+            label: name,
+            value
+          }))
+        } else {
+          acc[groupName] = [
+            {
+              label: groupName,
+              value: groupData.value
+            }
+          ]
+        }
+
+        return acc
+      },
+      {} as Record<string, { label: string; value: string }[]>
+    )
+
+    setDescriptionData(transformedData)
+  }, [current?.structure])
+
+  const onCaptureScreen = () => {
+    html2canvas(containerRef.current).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png')
+      const link = document.createElement('a')
+      link.href = imgData
+      link.download = 'description.png'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    })
+  }
+
+  return (
+    <Modal
+      title={t('company_template.diagram.title')}
+      open={open}
+      onOk={() => formRef.current?.submit()}
+      onCancel={onCancel}
+      maskClosable={false}
+      afterClose={onClose}
+      width={800}
+      okText={t('company_template.submit')}
+      styles={{
+        body: {
+          maxHeight: '65vh',
+          overflowY: 'auto'
+        }
+      }}
+      centered>
+      <Flex
+        justify="flex-end"
+        style={{
+          marginRight: 16
+        }}>
+        <Button onClick={onCaptureScreen}>{t('下载')}</Button>
+      </Flex>
+      <div ref={containerRef}>
+        <Descriptions column={1} size="small">
+          {Object.entries(descriptionData).map(([groupName, fields]) => (
+            <Descriptions.Item key={groupName}>
+              <Descriptions
+                styles={{
+                  header: {
+                    marginBottom: 8
+                  }
+                }}
+                title={groupName}
+                bordered
+                column={2}>
+                {fields.map((field, index) => (
+                  <Descriptions.Item key={index} label={field.label}>
+                    <SimpleMarkdown>{field.value}</SimpleMarkdown>
+                  </Descriptions.Item>
+                ))}
+              </Descriptions>
+            </Descriptions.Item>
+          ))}
+        </Descriptions>
+      </div>
     </Modal>
   )
 }
@@ -210,6 +328,21 @@ export default class ManageCompanyDiagramPopup {
     return new Promise<CompanyDiagram | null>((resolve) => {
       TopView.show(
         <PopupContainer
+          id={id}
+          resolve={(v) => {
+            resolve(v)
+            this.hide()
+          }}
+        />,
+        'ManageCompanyDiagramPopup'
+      )
+    })
+  }
+
+  static preview(id: string) {
+    return new Promise<CompanyDiagram | null>((resolve) => {
+      TopView.show(
+        <PreviewContainer
           id={id}
           resolve={(v) => {
             resolve(v)

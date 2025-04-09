@@ -86,13 +86,13 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
 
   return (
     <Modal
-      title={t('company_template.add.title')}
+      title={t('company_template.template.title')}
       open={open}
       onOk={() => formRef.current?.submit()}
       onCancel={onCancel}
       maskClosable={false}
       afterClose={onClose}
-      okText={t('company_template.add.title')}
+      okText={t('company_template.submit')}
       styles={{
         body: {
           maxHeight: '65vh',
@@ -109,7 +109,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
         onFinish={onFinish}
         initialValues={isEditing ? current : {}}>
         <Form.Item name="name" label={t('company_template.add.name')} rules={[{ required: true }]}>
-          <Input placeholder={t('company_template.add.name.placeholder')} spellCheck={false} allowClear />
+          <Input placeholder={t('company_template.add.name_placeholder')} spellCheck={false} allowClear />
         </Form.Item>
         <Form.Item
           name="structure"
@@ -118,12 +118,8 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
           style={{ position: 'relative' }}>
           <JsonEditor data={jsonData} setData={onSetJsonData} />
         </Form.Item>
-        <Form.Item
-          name="prompt"
-          label={t('company_template.add.desc')}
-          rules={[{ required: true }]}
-          style={{ position: 'relative' }}>
-          <TextArea placeholder={t('company_template.add.desc.placeholder')} spellCheck={false} rows={4} />
+        <Form.Item name="prompt" label={t('company_template.add.desc')} style={{ position: 'relative' }}>
+          <TextArea placeholder={t('company_template.add.desc_placeholder')} spellCheck={false} rows={4} />
         </Form.Item>
       </Form>
     </Modal>
