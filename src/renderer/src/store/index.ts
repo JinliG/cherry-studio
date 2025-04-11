@@ -62,6 +62,4 @@ export const useAppStore = useStore.withTypes<typeof store>()
 
 window.store = store
 
-console.log('--- store', store.getState())
-
 export default store

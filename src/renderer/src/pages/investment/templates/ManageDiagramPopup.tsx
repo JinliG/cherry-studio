@@ -94,7 +94,6 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
     // 转换 jsonData 为 descriptionData
     const transformedData = Object.entries(jsonData).reduce(
       (acc, [groupName, groupData]: [any, any]) => {
-        console.log('--- groupData', groupData)
         if (Array.isArray(groupData)) {
           acc[groupName] = groupData.map(({ name, value }) => ({
             label: name,
@@ -192,7 +191,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   )
 }
 
-const PreviewContainer: React.FC<Props> = ({ resolve, id }) => {
+const PreviewContainer: React.FC<Props> = ({ resolve, id = '' }) => {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const { diagram: current } = useCompanyDiagram(id)
@@ -243,15 +242,17 @@ const PreviewContainer: React.FC<Props> = ({ resolve, id }) => {
   }, [current?.structure])
 
   const onCaptureScreen = () => {
-    html2canvas(containerRef.current).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png')
-      const link = document.createElement('a')
-      link.href = imgData
-      link.download = 'description.png'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    })
+    if (containerRef.current) {
+      html2canvas(containerRef.current).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png')
+        const link = document.createElement('a')
+        link.href = imgData
+        link.download = 'description.png'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      })
+    }
   }
 
   return (
