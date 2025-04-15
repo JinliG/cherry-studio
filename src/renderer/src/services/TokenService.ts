@@ -64,7 +64,8 @@ export async function estimateMessageUsage(message: Message): Promise<Completion
     }
   }
 
-  const tokens = estimateTextTokens(message.content)
+  const combinedContent = [message.content, message.reasoning_content].filter((s) => s !== undefined).join(' ')
+  const tokens = estimateTextTokens(combinedContent)
 
   return {
     prompt_tokens: tokens,
@@ -94,7 +95,8 @@ export async function estimateMessagesUsage({
 
 export async function estimateHistoryTokens(assistant: Assistant, msgs: Message[]) {
   const { contextCount } = getAssistantSettings(assistant)
-  const messages = filterMessages(filterContextMessages(takeRight(msgs, contextCount)))
+  const maxContextCount = contextCount
+  const messages = filterMessages(filterContextMessages(takeRight(msgs, maxContextCount)))
 
   // 有 usage 数据的消息，快速计算总数
   const uasageTokens = messages

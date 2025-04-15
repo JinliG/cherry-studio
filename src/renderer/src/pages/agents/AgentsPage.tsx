@@ -66,14 +66,10 @@ const AgentsPage: FC = () => {
     return { 搜索结果: Array.from(uniqueAgents.values()) }
   }, [agentGroups, search])
 
-  const getAgentName = (agent: Agent) => {
-    return agent.emoji ? agent.emoji + ' ' + agent.name : agent.name
-  }
-
   const onAddAgentConfirm = useCallback(
     (agent: Agent) => {
       window.modal.confirm({
-        title: getAgentName(agent),
+        title: agent.name,
         content: (
           <AgentPrompt>
             <ReactMarkdown className="markdown">{agent.description || agent.prompt}</ReactMarkdown>
@@ -92,7 +88,7 @@ const AgentsPage: FC = () => {
     [t]
   )
 
-  const getAgentFromSystemAgent = (agent: (typeof systemAgents)[number]) => {
+  const getAgentFromSystemAgent = useCallback((agent: (typeof systemAgents)[number]) => {
     return {
       ...omit(agent, 'group'),
       name: agent.name,
@@ -100,7 +96,7 @@ const AgentsPage: FC = () => {
       topics: [],
       type: 'agent'
     }
-  }
+  }, [])
 
   const getLocalizedGroupName = useCallback(
     (group: string) => {
@@ -125,7 +121,7 @@ const AgentsPage: FC = () => {
         </Row>
       )
     },
-    [onAddAgentConfirm]
+    [getAgentFromSystemAgent, onAddAgentConfirm]
   )
 
   const tabItems = useMemo(() => {

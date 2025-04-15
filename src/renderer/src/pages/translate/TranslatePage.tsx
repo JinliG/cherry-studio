@@ -4,6 +4,7 @@ import {
   HistoryOutlined,
   SendOutlined,
   SettingOutlined,
+  SyncOutlined,
   WarningOutlined
 } from '@ant-design/icons'
 import { Navbar, NavbarCenter } from '@renderer/components/app/Navbar'
@@ -16,7 +17,7 @@ import { fetchTranslate } from '@renderer/services/ApiService'
 import { getDefaultTranslateAssistant } from '@renderer/services/AssistantService'
 import { Assistant, Message, TranslateHistory } from '@renderer/types'
 import { runAsyncFunction, uuid } from '@renderer/utils'
-import { Button, Dropdown, Empty, Flex, Popconfirm, Select, Space } from 'antd'
+import { Button, Dropdown, Empty, Flex, Popconfirm, Select, Space, Tooltip } from 'antd'
 import TextArea, { TextAreaRef } from 'antd/es/input/TextArea'
 import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -39,8 +40,11 @@ const TranslatePage: FC = () => {
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false)
+  const [isScrollSyncEnabled, setIsScrollSyncEnabled] = useState(false)
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const textAreaRef = useRef<TextAreaRef>(null)
+  const outputTextRef = useRef<HTMLDivElement>(null)
+  const isProgrammaticScroll = useRef(false)
 
   const translateHistory = useLiveQuery(() => db.translate_history.orderBy('createdAt').reverse().toArray(), [])
 
@@ -62,7 +66,6 @@ const TranslatePage: FC = () => {
       targetLanguage,
       createdAt: new Date().toISOString()
     }
-    console.log('🌟TEO🌟 ~ saveTranslateHistory ~ history:', history)
     await db.translate_history.add(history)
   }
 
@@ -103,14 +106,24 @@ const TranslatePage: FC = () => {
 
     setLoading(true)
     let translatedText = ''
-    await fetchTranslate({
-      message,
-      assistant,
-      onResponse: (text) => {
-        translatedText = text
-        setResult(text)
-      }
-    })
+    try {
+      await fetchTranslate({
+        message,
+        assistant,
+        onResponse: (text) => {
+          translatedText = text.replace(/^\s*\n+/g, '')
+          setResult(translatedText)
+        }
+      })
+    } catch (error) {
+      console.error('Translation error:', error)
+      window.message.error({
+        content: String(error),
+        key: 'translate-message'
+      })
+      setLoading(false)
+      return
+    }
 
     await saveTranslateHistory(text, translatedText, 'any', targetLanguage)
     setLoading(false)
@@ -139,6 +152,14 @@ const TranslatePage: FC = () => {
     })
   }, [])
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isEnterPressed = e.keyCode == 13
+    if (isEnterPressed && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault()
+      onTranslate()
+    }
+  }
+
   const SettingButton = () => {
     if (isLocalAi) {
       return null
@@ -164,6 +185,46 @@ const TranslatePage: FC = () => {
     )
   }
 
+  // Handle input area scroll event
+  const handleInputScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (!isScrollSyncEnabled || !outputTextRef.current || isProgrammaticScroll.current) return
+
+    isProgrammaticScroll.current = true
+
+    const inputEl = e.currentTarget
+    const outputEl = outputTextRef.current
+
+    // Calculate scroll position by ratio
+    const inputScrollRatio = inputEl.scrollTop / (inputEl.scrollHeight - inputEl.clientHeight || 1)
+    outputEl.scrollTop = inputScrollRatio * (outputEl.scrollHeight - outputEl.clientHeight || 1)
+
+    requestAnimationFrame(() => {
+      isProgrammaticScroll.current = false
+    })
+  }
+
+  // Handle output area scroll event
+  const handleOutputScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const inputEl = textAreaRef.current?.resizableTextArea?.textArea
+    if (!isScrollSyncEnabled || !inputEl || isProgrammaticScroll.current) return
+
+    isProgrammaticScroll.current = true
+
+    const outputEl = e.currentTarget
+
+    // Calculate scroll position by ratio
+    const outputScrollRatio = outputEl.scrollTop / (outputEl.scrollHeight - outputEl.clientHeight || 1)
+    inputEl.scrollTop = outputScrollRatio * (inputEl.scrollHeight - inputEl.clientHeight || 1)
+
+    requestAnimationFrame(() => {
+      isProgrammaticScroll.current = false
+    })
+  }
+
+  const toggleScrollSync = () => {
+    setIsScrollSyncEnabled(!isScrollSyncEnabled)
+  }
+
   return (
     <Container id="translate-page">
       <Navbar>
@@ -183,13 +244,11 @@ const TranslatePage: FC = () => {
         <HistoryContainner $historyDrawerVisible={historyDrawerVisible}>
           <OperationBar>
             <span style={{ fontSize: 16 }}>{t('translate.history.title')}</span>
-            {translateHistory?.length && (
+            {!isEmpty(translateHistory) && (
               <Popconfirm
                 title={t('translate.history.clear')}
                 description={t('translate.history.clear_description')}
-                onConfirm={clearHistory}
-                okText="Yes"
-                cancelText="No">
+                onConfirm={clearHistory}>
                 <Button type="text" size="small" danger icon={<DeleteOutlined />}>
                   {t('translate.history.clear')}
                 </Button>
@@ -242,16 +301,37 @@ const TranslatePage: FC = () => {
                 options={[{ label: t('translate.any.language'), value: 'any' }]}
               />
               <SettingButton />
+              <Tooltip
+                mouseEnterDelay={0.5}
+                title={isScrollSyncEnabled ? t('translate.scroll_sync.disable') : t('translate.scroll_sync.enable')}>
+                <SyncOutlined
+                  style={{
+                    color: isScrollSyncEnabled ? 'var(--color-primary)' : 'var(--color-text-2)'
+                  }}
+                  onClick={toggleScrollSync}
+                />
+              </Tooltip>
             </Flex>
 
-            <TranslateButton
-              type="primary"
-              loading={loading}
-              onClick={onTranslate}
-              disabled={!text.trim()}
-              icon={<SendOutlined />}>
-              {t('translate.button.translate')}
-            </TranslateButton>
+            <Tooltip
+              mouseEnterDelay={0.5}
+              styles={{ body: { fontSize: '12px' } }}
+              title={
+                <div style={{ textAlign: 'center' }}>
+                  Enter: {t('translate.button.translate')}
+                  <br />
+                  Shift + Enter: {t('translate.tooltip.newline')}
+                </div>
+              }>
+              <TranslateButton
+                type="primary"
+                loading={loading}
+                onClick={onTranslate}
+                disabled={!text.trim()}
+                icon={<SendOutlined />}>
+                {t('translate.button.translate')}
+              </TranslateButton>
+            </Tooltip>
           </OperationBar>
 
           <Textarea
@@ -260,6 +340,8 @@ const TranslatePage: FC = () => {
             placeholder={t('translate.input.placeholder')}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={onKeyDown}
+            onScroll={handleInputScroll}
             disabled={loading}
             spellCheck={false}
             allowClear
@@ -294,7 +376,9 @@ const TranslatePage: FC = () => {
             />
           </OperationBar>
 
-          <OutputText>{result || t('translate.output.placeholder')}</OutputText>
+          <OutputText ref={outputTextRef} onScroll={handleOutputScroll} className="selectable">
+            {result || t('translate.output.placeholder')}
+          </OutputText>
         </OutputContainer>
       </ContentContainer>
     </Container>

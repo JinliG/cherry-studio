@@ -1,10 +1,21 @@
-import { DeleteOutlined, EditOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons'
-import { Navbar, NavbarCenter } from '@renderer/components/app/Navbar'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  SettingOutlined
+} from '@ant-design/icons'
+import { Navbar, NavbarCenter, NavbarRight } from '@renderer/components/app/Navbar'
 import DragableList from '@renderer/components/DragableList'
+import { HStack } from '@renderer/components/Layout'
 import ListItem from '@renderer/components/ListItem'
 import PromptPopup from '@renderer/components/Popups/PromptPopup'
 import Scrollbar from '@renderer/components/Scrollbar'
 import { useKnowledgeBases } from '@renderer/hooks/useKnowledge'
+import { useShortcut } from '@renderer/hooks/useShortcuts'
+import { NavbarIcon } from '@renderer/pages/home/Navbar'
+import KnowledgeSearchPopup from '@renderer/pages/knowledge/components/KnowledgeSearchPopup'
 import { KnowledgeBase } from '@renderer/types'
 import { Dropdown, Empty, MenuProps } from 'antd'
 import { FC, useCallback, useEffect, useState } from 'react'
@@ -22,7 +33,10 @@ const KnowledgePage: FC = () => {
   const [isDragging, setIsDragging] = useState(false)
 
   const handleAddKnowledge = async () => {
-    await AddKnowledgePopup.show({ title: t('knowledge.add.title') })
+    const newBase = await AddKnowledgePopup.show({ title: t('knowledge.add.title') })
+    if (newBase) {
+      setSelectedBase(newBase)
+    }
   }
 
   useEffect(() => {
@@ -78,10 +92,23 @@ const KnowledgePage: FC = () => {
     [deleteKnowledgeBase, renameKnowledgeBase, t]
   )
 
+  useShortcut('search_message', () => {
+    if (selectedBase) {
+      KnowledgeSearchPopup.show({ base: selectedBase }).then()
+    }
+  })
+
   return (
     <Container>
       <Navbar>
         <NavbarCenter style={{ borderRight: 'none' }}>{t('knowledge.title')}</NavbarCenter>
+        <NavbarRight>
+          <HStack alignItems="center">
+            <NarrowIcon onClick={() => selectedBase && KnowledgeSearchPopup.show({ base: selectedBase })}>
+              <SearchOutlined />
+            </NarrowIcon>
+          </HStack>
+        </NavbarRight>
       </Navbar>
       <ContentContainer id="content-container">
         <SideNav>
@@ -151,7 +178,7 @@ const MainContent = styled(Scrollbar)`
 `
 
 const SideNav = styled.div`
-  width: var(--assistants-width);
+  min-width: var(--settings-width);
   border-right: 0.5px solid var(--color-border);
   padding: 12px 10px;
   display: flex;
@@ -216,6 +243,12 @@ const AddKnowledgeName = styled.div`
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 13px;
+`
+
+const NarrowIcon = styled(NavbarIcon)`
+  @media (max-width: 1000px) {
+    display: none;
+  }
 `
 
 export default KnowledgePage

@@ -5,19 +5,27 @@ import storage from 'redux-persist/lib/storage'
 
 import agents from './agents'
 import assistants from './assistants'
+import backup from './backup'
+import copilot from './copilot'
 import company_templates from './company_templates'
 import knowledge from './knowledge'
 import llm from './llm'
+import mcp from './mcp'
+import messagesReducer from './messages'
 import migrate from './migrate'
 import minapps from './minapps'
+import nutstore from './nutstore'
 import paintings from './paintings'
 import runtime from './runtime'
 import settings from './settings'
 import shortcuts from './shortcuts'
+import websearch from './websearch'
 
 const rootReducer = combineReducers({
   assistants,
   agents,
+  backup,
+  nutstore,
   paintings,
   llm,
   settings,
@@ -25,6 +33,10 @@ const rootReducer = combineReducers({
   shortcuts,
   knowledge,
   minapps,
+  websearch,
+  mcp,
+  copilot,
+  messages: messagesReducer,
   company_templates
 })
 
@@ -32,8 +44,8 @@ const persistedReducer = persistReducer(
   {
     key: 'cherry-studio',
     storage,
-    version: 70,
-    blacklist: ['runtime'],
+    version: 95,
+    blacklist: ['runtime', 'messages'],
     migrate
   },
   rootReducer
