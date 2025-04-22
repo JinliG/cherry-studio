@@ -2,11 +2,12 @@ import { HolderOutlined } from '@ant-design/icons'
 import { QuickPanelListItem, QuickPanelView, useQuickPanel } from '@renderer/components/QuickPanel'
 import TranslateButton from '@renderer/components/TranslateButton'
 import { isGenerateImageModel, isReasoningModel, isVisionModel, isWebSearchModel } from '@renderer/config/models'
+import { ATTACHED_DOCUMENT_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useKnowledgeBases } from '@renderer/hooks/useKnowledge'
 import { useMCPServers } from '@renderer/hooks/useMCPServers'
-import { useMessageOperations, useTopicLoading } from '@renderer/hooks/useMessageOperations'
+import { useMessageOperations, useTopicLoading, useTopicMessages } from '@renderer/hooks/useMessageOperations'
 import { modelGenerating, useRuntime } from '@renderer/hooks/useRuntime'
 import { useMessageStyle, useSettings } from '@renderer/hooks/useSettings'
 import { useShortcut, useShortcutDisplay } from '@renderer/hooks/useShortcuts'
@@ -53,6 +54,7 @@ import React, { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useS
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
+import InputSuggestions from '../components/InputSuggestions'
 import NarrowLayout from '../Messages/NarrowLayout'
 import AttachmentButton, { AttachmentButtonRef } from './AttachmentButton'
 import AttachmentPreview from './AttachmentPreview'
@@ -71,8 +73,8 @@ import WebSearchButton, { WebSearchButtonRef } from './WebSearchButton'
 
 interface Props {
   assistant: Assistant
-  setActiveTopic: (topic: Topic) => void
   topic: Topic
+  setActiveTopic: (topic: Topic) => void
 }
 
 let _text = ''
@@ -81,7 +83,7 @@ let _files: FileType[] = []
 const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) => {
   const [text, setText] = useState(_text)
   const [inputFocus, setInputFocus] = useState(false)
-  const { assistant, addTopic, model, setModel, updateAssistant } = useAssistant(_assistant.id)
+  const { assistant, addTopic, model, setModel, updateAssistant, updateTopic } = useAssistant(_assistant.id)
   const {
     targetLanguage,
     sendMessageShortcut,
@@ -119,6 +121,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
   const supportExts = useMemo(() => [...textExts, ...documentExts, ...(isVision ? imageExts : [])], [isVision])
   const { activedMcpServers } = useMCPServers()
   const { bases: knowledgeBases } = useKnowledgeBases()
+  const messages = useTopicMessages(topic.id)
 
   const quickPanel = useQuickPanel()
 
@@ -157,6 +160,16 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
   _text = text
   _files = files
+
+  const lastInputText = useMemo(() => {
+    if (!isEmpty(messages)) {
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage?.role === 'user') {
+        return lastMessage.content
+      }
+    }
+    return _text
+  }, [messages])
 
   const resizeTextArea = useCallback(() => {
     const textArea = textareaRef.current?.resizableTextArea?.textArea
@@ -201,6 +214,23 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
       if (mentionModels) {
         baseUserMessage.mentions = mentionModels
+      }
+
+      // add page content context
+      if (!isEmpty(topic.attachedPages)) {
+        const pageContent =
+          topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+        const pagePrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
+        assistant.prompt = assistant.prompt ? `${assistant.prompt}\n${pagePrompt}` : pagePrompt
+      }
+
+      // add file content context
+      if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
+        const documentContent = await (
+          await window.api.file.read(assistant.attachedDocument?.id + assistant.attachedDocument?.ext)
+        ).trim()
+        const documentPrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', documentContent)
+        assistant.prompt = assistant.prompt ? `${assistant.prompt}\n${documentPrompt}` : documentContent
       }
 
       if (!isEmpty(assistant.mcpServers) && !isEmpty(activedMcpServers)) {
@@ -511,7 +541,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
     await modelGenerating()
 
     const topic = getDefaultTopic(assistant.id)
-
     await db.topics.add({ id: topic.id, messages: [] })
     await addAssistantMessagesToTopic({ assistant, topic })
 
@@ -857,13 +886,24 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
+      {!!assistant.attachedDocument?.allowSuggestion && (
+        <InputSuggestions lastInputText={lastInputText} assistant={assistant} />
+      )}
       <NarrowLayout style={{ width: '100%' }}>
         <QuickPanelView setInputText={setText} />
         <InputBarContainer
           id="inputbar"
           className={classNames('inputbar-container', inputFocus && 'focus')}
           ref={containerRef}>
-          {files.length > 0 && <AttachmentPreview files={files} setFiles={setFiles} />}
+          <AttachmentPreview
+            assistant={assistant}
+            topic={topic}
+            setActiveTopic={setActiveTopic}
+            updateTopic={updateTopic}
+            updateAssistant={updateAssistant}
+            files={files}
+            setFiles={setFiles}
+          />
           {selectedKnowledgeBases.length > 0 && (
             <KnowledgeBaseInput
               selectedKnowledgeBases={selectedKnowledgeBases}
