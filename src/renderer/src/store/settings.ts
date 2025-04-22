@@ -29,6 +29,8 @@ export const DEFAULT_HIDE_SIDEBAR_ICONS: SidebarIcon[] = ['agents', 'paintings',
 
 export interface NutstoreSyncRuntime extends WebDAVSyncState {}
 
+export type AssistantIconType = 'model' | 'emoji' | 'none'
+
 export interface SettingsState {
   showAssistants: boolean
   showTopics: boolean
@@ -50,7 +52,7 @@ export interface SettingsState {
   fontSize: number
   topicPosition: 'left' | 'right'
   showTopicTime: boolean
-  showAssistantIcon: boolean
+  assistantIconType: AssistantIconType
   pasteLongTextAsFile: boolean
   pasteLongTextThreshold: number
   clickAssistantToShowTopic: boolean
@@ -78,6 +80,7 @@ export interface SettingsState {
   webdavPath: string
   webdavAutoSync: boolean
   webdavSyncInterval: number
+  webdavMaxBackups: number
   translateModelPrompt: string
   autoTranslateWithSpace: boolean
   enableTopicNaming: boolean
@@ -119,6 +122,7 @@ export interface SettingsState {
   // 隐私设置
   enableDataCollection: boolean
   enableQuickPanelTriggers: boolean
+  enableBackspaceDeleteModel: boolean
   exportMenuOptions: {
     image: boolean
     markdown: boolean
@@ -155,7 +159,7 @@ export const initialState: SettingsState = {
   fontSize: 14,
   topicPosition: 'left',
   showTopicTime: false,
-  showAssistantIcon: false,
+  assistantIconType: 'emoji',
   pasteLongTextAsFile: false,
   pasteLongTextThreshold: 1500,
   clickAssistantToShowTopic: true,
@@ -181,6 +185,7 @@ export const initialState: SettingsState = {
   webdavPath: '/cherry-studio',
   webdavAutoSync: false,
   webdavSyncInterval: 0,
+  webdavMaxBackups: 0,
   translateModelPrompt: TRANSLATE_PROMPT,
   autoTranslateWithSpace: false,
   enableTopicNaming: true,
@@ -218,6 +223,7 @@ export const initialState: SettingsState = {
   showOpenedMinappsInSidebar: true,
   enableDataCollection: false,
   enableQuickPanelTriggers: false,
+  enableBackspaceDeleteModel: true,
   exportMenuOptions: {
     image: true,
     markdown: true,
@@ -290,6 +296,9 @@ const settingsSlice = createSlice({
     setTheme: (state, action: PayloadAction<ThemeMode>) => {
       state.theme = action.payload
     },
+    setCustomCss: (state, action: PayloadAction<string>) => {
+      state.customCss = action.payload
+    },
     setFontSize: (state, action: PayloadAction<number>) => {
       state.fontSize = action.payload
     },
@@ -302,8 +311,8 @@ const settingsSlice = createSlice({
     setShowTopicTime: (state, action: PayloadAction<boolean>) => {
       state.showTopicTime = action.payload
     },
-    setShowAssistantIcon: (state, action: PayloadAction<boolean>) => {
-      state.showAssistantIcon = action.payload
+    setAssistantIconType: (state, action: PayloadAction<AssistantIconType>) => {
+      state.assistantIconType = action.payload
     },
     setPasteLongTextAsFile: (state, action: PayloadAction<boolean>) => {
       state.pasteLongTextAsFile = action.payload
@@ -334,6 +343,9 @@ const settingsSlice = createSlice({
     },
     setWebdavSyncInterval: (state, action: PayloadAction<number>) => {
       state.webdavSyncInterval = action.payload
+    },
+    setWebdavMaxBackups: (state, action: PayloadAction<number>) => {
+      state.webdavMaxBackups = action.payload
     },
     setCodeShowLineNumbers: (state, action: PayloadAction<boolean>) => {
       state.codeShowLineNumbers = action.payload
@@ -385,9 +397,6 @@ const settingsSlice = createSlice({
     },
     setPasteLongTextThreshold: (state, action: PayloadAction<number>) => {
       state.pasteLongTextThreshold = action.payload
-    },
-    setCustomCss: (state, action: PayloadAction<string>) => {
-      state.customCss = action.payload
     },
     setTopicNamingPrompt: (state, action: PayloadAction<string>) => {
       state.topicNamingPrompt = action.payload
@@ -489,6 +498,9 @@ const settingsSlice = createSlice({
     },
     setEnableQuickPanelTriggers: (state, action: PayloadAction<boolean>) => {
       state.enableQuickPanelTriggers = action.payload
+    },
+    setEnableBackspaceDeleteModel: (state, action: PayloadAction<boolean>) => {
+      state.enableBackspaceDeleteModel = action.payload
     }
   }
 })
@@ -516,7 +528,7 @@ export const {
   setWindowStyle,
   setTopicPosition,
   setShowTopicTime,
-  setShowAssistantIcon,
+  setAssistantIconType,
   setPasteLongTextAsFile,
   setAutoCheckUpdate,
   setRenderInputMessageAsMarkdown,
@@ -527,6 +539,7 @@ export const {
   setWebdavPath,
   setWebdavAutoSync,
   setWebdavSyncInterval,
+  setWebdavMaxBackups,
   setCodeShowLineNumbers,
   setCodeCollapsible,
   setCodeWrappable,
@@ -576,7 +589,8 @@ export const {
   setShowOpenedMinappsInSidebar,
   setEnableDataCollection,
   setEnableQuickPanelTriggers,
-  setExportMenuOptions
+  setExportMenuOptions,
+  setEnableBackspaceDeleteModel
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

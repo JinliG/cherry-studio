@@ -1,4 +1,4 @@
-import { GroundingMetadata } from '@google/generative-ai'
+import { GroundingMetadata } from '@google/genai'
 import OpenAI from 'openai'
 import React from 'react'
 import { BuiltinTheme } from 'shiki'
@@ -47,7 +47,9 @@ export type AssistantSettings = {
   reasoning_effort?: 'low' | 'medium' | 'high'
 }
 
-export type Agent = Omit<Assistant, 'model'>
+export type Agent = Omit<Assistant, 'model'> & {
+  group?: string[]
+}
 
 export type Message = {
   id: string
@@ -63,7 +65,7 @@ export type Message = {
   model?: Model
   files?: FileType[]
   images?: string[]
-  usage?: OpenAI.Completions.CompletionUsage
+  usage?: Usage
   metrics?: Metrics
   knowledgeBaseIds?: string[]
   type: 'text' | '@' | 'clear'
@@ -88,11 +90,17 @@ export type Message = {
     mcpTools?: MCPToolResponse[]
     // Generate Image
     generateImage?: GenerateImageResponse
+    // knowledge
+    knowledge?: KnowledgeReference[]
   }
   // 多模型消息样式
   multiModelMessageStyle?: 'horizontal' | 'vertical' | 'fold' | 'grid'
   // fold时是否选中
   foldSelected?: boolean
+}
+
+export type Usage = OpenAI.Completions.CompletionUsage & {
+  thoughts_tokens?: number
 }
 
 export type Metrics = {
@@ -259,6 +267,8 @@ export type AppInfo = {
   resourcesPath: string
   filesPath: string
   logsPath: string
+  arch: string
+  isPortable: boolean
 }
 
 export interface Shortcut {
@@ -368,6 +378,8 @@ export type WebSearchProvider = {
   apiHost?: string
   engines?: string[]
   url?: string
+  basicAuthUsername?: string
+  basicAuthPassword?: string
   contentLimit?: number
   usingBrowser?: boolean
 }
@@ -402,6 +414,12 @@ export interface MCPServerParameter {
   description: string
 }
 
+export interface MCPConfigSample {
+  command: string
+  args: string[]
+  env?: Record<string, string> | undefined
+}
+
 export interface MCPServer {
   id: string
   name: string
@@ -414,6 +432,8 @@ export interface MCPServer {
   env?: Record<string, string>
   isActive: boolean
   disabledTools?: string[] // List of tool names that are disabled for this server
+  configSample?: MCPConfigSample
+  headers?: Record<string, string> // Custom headers to be sent with requests to this server
 }
 
 export interface MCPToolInputSchema {
@@ -433,6 +453,34 @@ export interface MCPTool {
   inputSchema: MCPToolInputSchema
 }
 
+export interface MCPPromptArguments {
+  name: string
+  description?: string
+  required?: boolean
+}
+
+export interface MCPPrompt {
+  id: string
+  name: string
+  description?: string
+  arguments?: MCPPromptArguments[]
+  serverId: string
+  serverName: string
+}
+
+export interface GetMCPPromptResponse {
+  description?: string
+  messages: {
+    role: string
+    content: {
+      type: 'text' | 'image' | 'audio' | 'resource'
+      text?: string
+      data?: string
+      mimeType?: string
+    }
+  }[]
+}
+
 export interface MCPConfig {
   servers: MCPServer[]
 }
@@ -442,6 +490,39 @@ export interface MCPToolResponse {
   tool: MCPTool // tool info
   status: string // 'invoking' | 'done'
   response?: any
+}
+
+export interface MCPToolResultContent {
+  type: 'text' | 'image' | 'audio' | 'resource'
+  text?: string
+  data?: string
+  mimeType?: string
+  resource?: {
+    uri?: string
+    text?: string
+    mimeType?: string
+  }
+}
+
+export interface MCPCallToolResponse {
+  content: MCPToolResultContent[]
+  isError?: boolean
+}
+
+export interface MCPResource {
+  serverId: string
+  serverName: string
+  uri: string
+  name: string
+  description?: string
+  mimeType?: string
+  size?: number
+  text?: string
+  blob?: string
+}
+
+export interface GetResourceResponse {
+  contents: MCPResource[]
 }
 
 export interface QuickPhrase {
