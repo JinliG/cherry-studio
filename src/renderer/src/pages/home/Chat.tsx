@@ -27,6 +27,7 @@ const Chat: FC<Props> = (props) => {
   const { assistant: currentAssistant } = useAssistant(assistant.id)
 
   const [wrapperWidth, setWrapperWidth] = useState<number>(0)
+  const [readerLayout, setReaderLayout] = useState<'left' | 'right'>('left')
 
   useEffect(() => {
     const handleResize = () => {
@@ -79,10 +80,10 @@ const Chat: FC<Props> = (props) => {
 
   return (
     <Container id="chat" className={messageStyle}>
-      <Wrapper ref={wrapperRef}>
+      <Wrapper ref={wrapperRef} data-layout={readerLayout}>
         {currentAssistant.attachedDocument && (
-          <div
-            className="pdf-container"
+          <ReaderContainer
+            data-layout={readerLayout}
             style={{
               width: pageWidth + 24
             }}>
@@ -90,9 +91,11 @@ const Chat: FC<Props> = (props) => {
               assistant={currentAssistant}
               topic={activeTopic}
               pageWidth={pageWidth}
+              readerLayout={readerLayout}
+              setReaderLayout={setReaderLayout}
               setActiveTopic={props.setActiveTopic}
             />
-          </div>
+          </ReaderContainer>
         )}
         <Main
           id="chat-main"
@@ -136,9 +139,16 @@ const Container = styled.div`
 
 const Wrapper = styled(Flex)`
   width: 100%;
+  &[data-layout='right'] {
+    flex-direction: row-reverse;
+  }
+`
 
-  .pdf-container {
-    width: 50%;
+const ReaderContainer = styled.div`
+  width: 50%;
+
+  &[data-layout='right'] {
+    border-left: 1px solid var(--color-border);
   }
 `
 

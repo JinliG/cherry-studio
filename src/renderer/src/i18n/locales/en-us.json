@@ -1435,6 +1435,14 @@
       "quit": "Quit",
       "show_window": "Show Window",
       "visualization": "Visualization"
+    },
+    "document_reader": {
+      "index": "[to be translated]:目录",
+      "checked": "[to be translated]:已选择",
+      "unchecked": "[to be translated]:点击关联当前页",
+      "attaching": "[to be translated]:正在关联 ",
+      "page_num": "[to be translated]:第{{index}}",
+      "outline.empty": "[to be translated]:无可读目录"
     }
   }
 }
