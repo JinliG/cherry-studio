@@ -59,7 +59,9 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
           <>
             <Space size={4}>
               <span
-                style={{ marginRight: 16 }}>{`${origin_name} / ${formatFileSize(assistant.attachedDocument)}`}</span>
+                style={{
+                  marginRight: 16
+                }}>{`${origin_name} / ${formatFileSize(assistant.attachedDocument.size)}`}</span>
               <Button type="text" icon={<EditOutlined />} onClick={onSelectFile} />
               <Button
                 type="text"
