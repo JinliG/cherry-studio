@@ -69,8 +69,6 @@ const PdfReader: React.FC<Props> = (props) => {
       threshold: 1
     }
 
-    console.log('--- xxxx', pageWidth, pageRefs)
-
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
