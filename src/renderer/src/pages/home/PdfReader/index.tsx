@@ -39,6 +39,7 @@ interface Props {
   setReaderLayout: (layout: 'left' | 'right') => void
 }
 
+let observer: IntersectionObserver | null
 const PdfReader: React.FC<Props> = (props) => {
   const { topic, pageWidth, assistant, readerLayout = 'left', setActiveTopic, setReaderLayout } = props
   const { attachedPages = [] } = topic
@@ -68,6 +69,8 @@ const PdfReader: React.FC<Props> = (props) => {
       threshold: 1
     }
 
+    console.log('--- xxxx', pageWidth, pageRefs)
+
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -77,22 +80,29 @@ const PdfReader: React.FC<Props> = (props) => {
       })
     }
 
-    const observer = new IntersectionObserver(handleIntersection, observerOptions)
+    // 只有当 observer 尚未初始化时才创建
+    if (!observer) {
+      observer = new IntersectionObserver(handleIntersection, observerOptions)
+    }
+
+    // 观察所有页面引用
     pageRefs.forEach((ref) => {
       if (ref.current) {
-        observer.observe(ref.current)
+        observer?.observe(ref.current)
       }
     })
 
     return () => {
-      observer.disconnect()
+      // 清理操作时断开 observer
+      observer?.disconnect()
+      observer = null
     }
   }, [pageRefs, pageWidth])
 
   useEffect(() => {
     const loadFile = async () => {
       if (assistant.attachedDocument) {
-        const { data, mime } = await window.api.file.binaryFile(
+        const { data, mime } = await window.api.file.binaryImage(
           assistant.attachedDocument.id + assistant.attachedDocument.ext
         )
         setFile(new File([data], assistant.attachedDocument.name, { type: mime }))
@@ -184,7 +194,6 @@ const PdfReader: React.FC<Props> = (props) => {
                     min={1}
                     max={pageTotal}
                     className="page-input"
-                    defaultValue={1}
                     value={pageCurrent}
                     onChange={(num) => {
                       setPageCurrent(num || 1)
@@ -298,7 +307,7 @@ const PageWrapper = styled.div`
 `
 
 const OperationBar = styled.div`
-  z-index: 4;
+  z-index: 5;
   position: sticky;
   top: 0;
   right: 0;

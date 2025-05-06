@@ -7,7 +7,7 @@ import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useKnowledgeBases } from '@renderer/hooks/useKnowledge'
 import { useMCPServers } from '@renderer/hooks/useMCPServers'
-import { useMessageOperations, useTopicLoading, useTopicMessages } from '@renderer/hooks/useMessageOperations'
+import { useMessageOperations, useTopicLoading } from '@renderer/hooks/useMessageOperations'
 import { modelGenerating, useRuntime } from '@renderer/hooks/useRuntime'
 import { useMessageStyle, useSettings } from '@renderer/hooks/useSettings'
 import { useShortcut, useShortcutDisplay } from '@renderer/hooks/useShortcuts'
@@ -54,7 +54,6 @@ import React, { CSSProperties, FC, useCallback, useEffect, useMemo, useRef, useS
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
-import InputSuggestions from '../components/InputSuggestions'
 import NarrowLayout from '../Messages/NarrowLayout'
 import AttachmentButton, { AttachmentButtonRef } from './AttachmentButton'
 import AttachmentPreview from './AttachmentPreview'
@@ -121,7 +120,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
   const supportExts = useMemo(() => [...textExts, ...documentExts, ...(isVision ? imageExts : [])], [isVision])
   const { activedMcpServers } = useMCPServers()
   const { bases: knowledgeBases } = useKnowledgeBases()
-  const messages = useTopicMessages(topic.id)
 
   const quickPanel = useQuickPanel()
 
@@ -160,16 +158,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
   _text = text
   _files = files
-
-  const lastInputText = useMemo(() => {
-    if (!isEmpty(messages)) {
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage?.role === 'user') {
-        return lastMessage.content
-      }
-    }
-    return _text
-  }, [messages])
 
   const resizeTextArea = useCallback(() => {
     const textArea = textareaRef.current?.resizableTextArea?.textArea
@@ -886,9 +874,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
-      {!!assistant.attachedDocument?.allowSuggestion && (
-        <InputSuggestions lastInputText={lastInputText} assistant={assistant} />
-      )}
       <NarrowLayout style={{ width: '100%' }}>
         <QuickPanelView setInputText={setText} />
         <InputBarContainer

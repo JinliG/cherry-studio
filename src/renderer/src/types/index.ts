@@ -23,7 +23,7 @@ export type Assistant = {
   webSearchProviderId?: WebSearchProvider['id']
   enableGenerateImage?: boolean
   mcpServers?: MCPServer[]
-  attachedDocument?: FileType & { disabled?: boolean; allowSuggestion?: boolean }
+  attachedDocument?: FileType & { disabled?: boolean }
 }
 
 export type AssistantMessage = {

@@ -3,7 +3,7 @@ import { Box } from '@renderer/components/Layout'
 import FileManager from '@renderer/services/FileManager'
 import { Assistant, AssistantSettings } from '@renderer/types'
 import { formatFileSize } from '@renderer/utils'
-import { Button, Space, Switch } from 'antd'
+import { Button, Space } from 'antd'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
@@ -34,19 +34,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
     }
   }
 
-  const onToggleInputSuggestion = () => {
-    if (assistant.attachedDocument) {
-      updateAssistant({
-        ...assistant,
-        attachedDocument: {
-          ...assistant.attachedDocument,
-          allowSuggestion: !allowSuggestion
-        }
-      })
-    }
-  }
-
-  const { origin_name, allowSuggestion } = assistant.attachedDocument || {}
+  const { origin_name } = assistant.attachedDocument || {}
 
   return (
     <Container>
@@ -76,14 +64,6 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
             {t('assistants.settings.document_reader.upload')}
           </Button>
         )}
-      </Row>
-      <Row>
-        <Box mb={8} style={{ fontWeight: 'bold' }}>
-          {t('assistants.settings.document_reader.suggestion')}
-        </Box>
-        <Space>
-          <Switch disabled={!assistant.attachedDocument} checked={allowSuggestion} onChange={onToggleInputSuggestion} />
-        </Space>
       </Row>
     </Container>
   )
