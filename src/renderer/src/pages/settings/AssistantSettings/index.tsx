@@ -21,7 +21,7 @@ interface AssistantSettingPopupShowParams {
   tab?: AssistantSettingPopupTab
 }
 
-type AssistantSettingPopupTab = 'prompt' | 'model' | 'messages' | 'knowledge_base' | 'mcp'
+type AssistantSettingPopupTab = 'prompt' | 'model' | 'messages' | 'knowledge_base' | 'mcp' | 'document'
 
 interface Props extends AssistantSettingPopupShowParams {
   resolve: (assistant: Assistant) => void

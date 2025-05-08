@@ -1,7 +1,7 @@
 import { nanoid } from '@reduxjs/toolkit'
 import { WebSearchState } from '@renderer/store/websearch'
 import { WebSearchProvider, WebSearchResponse, WebSearchResult } from '@renderer/types'
-import { fetchWebContent, noContent } from '@renderer/utils/fetch'
+import { fetchWebContent, noContent as _noContent } from '@renderer/utils/fetch'
 
 import BaseWebSearchProvider from './BaseWebSearchProvider'
 
@@ -18,7 +18,7 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
     super(provider)
   }
 
-  public async search(query: string, websearch: WebSearchState): Promise<WebSearchResponse> {
+  public async search(query: string, websearch: WebSearchState, noContent?: boolean): Promise<WebSearchResponse> {
     const uid = nanoid()
     try {
       if (!query.trim()) {
@@ -41,6 +41,13 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
       // console.log('Valid search items:', validItems)
 
       // Fetch content for each URL concurrently
+      if (noContent === true) {
+        return {
+          query: query,
+          results: validItems as WebSearchResult[]
+        }
+      }
+
       const fetchPromises = validItems.map(async (item) => {
         // console.log(`Fetching content for ${item.url}...`)
         const result = await fetchWebContent(item.url, 'markdown', this.provider.usingBrowser)
@@ -55,7 +62,7 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
 
       return {
         query: query,
-        results: results.filter((result) => result.content != noContent)
+        results: results.filter((result) => result.content != _noContent)
       }
     } catch (error) {
       console.error('Local search failed:', error)

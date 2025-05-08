@@ -108,3 +108,42 @@ export async function fetchWebContent(
     }
   }
 }
+
+export async function fetchWebTitle(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' })
+
+    // 尝试从 Content-Disposition 获取文件名
+    const disposition = response.headers.get('Content-Disposition')
+    if (disposition) {
+      const utf8FilenameRegex = /filename\*=UTF-8''([\w%-.]+)/i
+      const asciiFilenameRegex = /filename="?([^"]+)"?/i
+
+      const utf8Matches = disposition.match(utf8FilenameRegex)
+      if (utf8Matches && utf8Matches[1]) {
+        return decodeURIComponent(utf8Matches[1])
+      }
+
+      const asciiMatches = disposition.match(asciiFilenameRegex)
+      if (asciiMatches && asciiMatches[1]) {
+        return asciiMatches[1]
+      }
+    }
+
+    // 如果没有从 header 获取到文件名，则从 URL 提取
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+    const filename = pathname.substring(pathname.lastIndexOf('/') + 1)
+
+    // 去除扩展名并美化显示
+    const title = filename
+      .replace(/\.[^/.]+$/, '') // 移除 .pdf
+      .replace(/[-_]/g, ' ') // 替换 - 和 _ 为空格
+      .replace(/\b\w/g, (c) => c.toUpperCase()) // 首字母大写
+
+    return title || url
+  } catch (e) {
+    console.warn(`Failed to fetch title`, e)
+    return url
+  }
+}

@@ -27,7 +27,7 @@ interface FileItemProps {
   style?: React.CSSProperties
 }
 
-const getFileIcon = (type?: string) => {
+export const getFileIcon = (type?: string) => {
   if (!type) return <FileUnknownFilled />
 
   const ext = type.toLowerCase()

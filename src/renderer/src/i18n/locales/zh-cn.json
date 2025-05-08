@@ -362,7 +362,11 @@
       "size": "大小",
       "text": "文本",
       "title": "文件",
-      "type": "类型"
+      "type": "类型",
+      "add.upload": "上传文件",
+      "add.success": "添加成功",
+      "add.web_search": "联网查询",
+      "web_search.error": "网络查询失败"
     },
     "gpustack": {
       "keep_alive_time.description": "模型在内存中保持的时间（默认：5分钟）",

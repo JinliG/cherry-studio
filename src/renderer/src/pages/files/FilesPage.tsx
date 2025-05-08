@@ -2,6 +2,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
+  PlusOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined
 } from '@ant-design/icons'
@@ -10,27 +11,47 @@ import ListItem from '@renderer/components/ListItem'
 import TextEditPopup from '@renderer/components/Popups/TextEditPopup'
 import db from '@renderer/databases'
 import FileManager from '@renderer/services/FileManager'
+import WebSearchService from '@renderer/services/WebSearchService'
 import store from '@renderer/store'
-import { FileType, FileTypes } from '@renderer/types'
+import { FileType, FileTypes, WebSearchResult } from '@renderer/types'
 import { formatFileSize } from '@renderer/utils'
-import { Button, Empty, Flex, Popconfirm } from 'antd'
+import { documentExts } from '@shared/config/constant'
+import { Button, Dropdown, Empty, Flex, Input, List, Modal, Popconfirm } from 'antd'
 import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { File as FileIcon, FileImage, FileText, FileType as FileTypeIcon } from 'lucide-react'
+import { join } from 'lodash'
+import {
+  DownloadCloud,
+  File as FileIcon,
+  FileImage,
+  FileText,
+  FileType as FileTypeIcon,
+  SearchCodeIcon,
+  Upload
+} from 'lucide-react'
 import { FC, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
+import { getFileIcon } from './FileItem'
 import FileList from './FileList'
 
 type SortField = 'created_at' | 'size' | 'name'
 type SortOrder = 'asc' | 'desc'
+
+const _suffix = '下载地址'
 
 const FilesPage: FC = () => {
   const { t } = useTranslation()
   const [fileType, setFileType] = useState<string>('document')
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+
+  const [webSearchOpen, setWebSearchOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [downloadingUrl, setDownloadingUrl] = useState<string>()
+  const [searchResults, setSearchResults] = useState<WebSearchResult[]>([])
 
   const tempFilesSort = (files: FileType[]) => {
     return files.sort((a, b) => {
@@ -137,12 +158,77 @@ const FilesPage: FC = () => {
     }
   })
 
+  const onSelectLocalFile = async () => {
+    const _files = await window.api.file.select({
+      properties: ['openFile'],
+      filters: [
+        {
+          name: 'Files',
+          extensions: [...documentExts]
+        }
+      ]
+    })
+
+    if (Array.isArray(_files) && _files[0]) {
+      await FileManager.uploadFiles(_files)
+    }
+  }
+
   const menuItems = [
     { key: FileTypes.DOCUMENT, label: t('files.document'), icon: <FileIcon size={16} /> },
     { key: FileTypes.IMAGE, label: t('files.image'), icon: <FileImage size={16} /> },
     { key: FileTypes.TEXT, label: t('files.text'), icon: <FileTypeIcon size={16} /> },
     { key: 'all', label: t('files.all'), icon: <FileText size={16} /> }
   ]
+
+  const addFileItems = [
+    { key: 'upload', label: t('files.add.upload'), icon: <Upload size={16} />, onClick: onSelectLocalFile },
+    {
+      key: 'web_search',
+      label: t('files.add.web_search'),
+      icon: <SearchCodeIcon size={16} />,
+      onClick: () => setWebSearchOpen(true)
+    }
+  ]
+
+  const onWebSearchDocs = async (search: string) => {
+    const provider = WebSearchService.getWebSearchProvider()
+    const questions = [join([search, _suffix], ' ')]
+    setSearching(true)
+
+    try {
+      const searchPromises = questions.map((q) => WebSearchService.search(provider, q, true))
+      const res = await Promise.allSettled(searchPromises)
+      const results: WebSearchResult[] = []
+      res.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          if (result.value.results) {
+            results.push(...result.value.results)
+          }
+        }
+      })
+      setSearchResults(results)
+      setSearching(false)
+    } catch (error) {
+      window.message.error('files.web_search.error')
+      setSearching(false)
+    }
+  }
+
+  const onDownloadFile = async (url: string) => {
+    setDownloadingUrl(url)
+    try {
+      const file = await window.api.file.download(url)
+      if (file) {
+        await FileManager.addFile(file)
+        window.message.success(t('files.add.success'))
+        setDownloadingUrl('')
+      }
+    } catch (error) {
+      console.error(error)
+      setDownloadingUrl('')
+    }
+  }
 
   return (
     <Container>
@@ -162,24 +248,37 @@ const FilesPage: FC = () => {
           ))}
         </SideNav>
         <MainContent>
-          <SortContainer>
-            {['created_at', 'size', 'name'].map((field) => (
-              <SortButton
-                key={field}
-                active={sortField === field}
-                onClick={() => {
-                  if (sortField === field) {
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                  } else {
-                    setSortField(field as 'created_at' | 'size' | 'name')
-                    setSortOrder('desc')
-                  }
+          <Header justify="space-between">
+            <Flex gap={8}>
+              {['created_at', 'size', 'name'].map((field) => (
+                <SortButton
+                  key={field}
+                  active={sortField === field}
+                  onClick={() => {
+                    if (sortField === field) {
+                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setSortField(field as 'created_at' | 'size' | 'name')
+                      setSortOrder('desc')
+                    }
+                  }}>
+                  {t(`files.${field}`)}
+                  {sortField === field &&
+                    (sortOrder === 'desc' ? <SortDescendingOutlined /> : <SortAscendingOutlined />)}
+                </SortButton>
+              ))}
+            </Flex>
+            <div>
+              <Dropdown
+                menu={{
+                  items: addFileItems
                 }}>
-                {t(`files.${field}`)}
-                {sortField === field && (sortOrder === 'desc' ? <SortDescendingOutlined /> : <SortAscendingOutlined />)}
-              </SortButton>
-            ))}
-          </SortContainer>
+                <OperateButton type="text" icon={<PlusOutlined />}>
+                  {t('button.add')}
+                </OperateButton>
+              </Dropdown>
+            </div>
+          </Header>
           {dataSource && dataSource?.length > 0 ? (
             <FileList id={fileType} list={dataSource} files={sortedFiles} />
           ) : (
@@ -187,6 +286,49 @@ const FilesPage: FC = () => {
           )}
         </MainContent>
       </ContentContainer>
+      <Modal title={t('files.add.web_search')} open={webSearchOpen} onCancel={() => setWebSearchOpen(false)}>
+        <SearchBar onSearch={onWebSearchDocs} size="large" disabled={searching} />
+        <SearchList
+          loading={searching}
+          dataSource={searchResults}
+          renderItem={(item, index) => {
+            const { url, title } = item as WebSearchResult
+            const ext = url.slice(url.lastIndexOf('.')).toLowerCase()
+            const fileIcon = getFileIcon(ext)
+            const isDownloadable = documentExts.includes(ext)
+            const isDownloading = url === downloadingUrl
+
+            return (
+              <List.Item
+                key={index}
+                extra={
+                  isDownloadable && (
+                    <OperateButton
+                      loading={isDownloading}
+                      type="text"
+                      icon={<DownloadCloud size={16} />}
+                      onClick={() => onDownloadFile(url)}
+                    />
+                  )
+                }>
+                <List.Item.Meta
+                  avatar={<ResultIcon>{fileIcon}</ResultIcon>}
+                  title={
+                    <Flex justify="space-between" align="center">
+                      {title}
+                    </Flex>
+                  }
+                  description={
+                    <Link to={url} target="_blank" rel="noopener noreferrer">
+                      {url}
+                    </Link>
+                  }
+                />
+              </List.Item>
+            )
+          }}
+        />
+      </Modal>
     </Container>
   )
 }
@@ -204,12 +346,36 @@ const MainContent = styled.div`
   flex-direction: column;
 `
 
-const SortContainer = styled.div`
+const Header = styled(Flex)`
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
   border-bottom: 0.5px solid var(--color-border);
+`
+
+const SearchList = styled(List)`
+  height: 320px;
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  overflow-y: auto;
+  border: 0.5px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-background-opacity);
+`
+
+const SearchBar = styled(Input.Search)`
+  margin-bottom: 12px;
+`
+
+const ResultIcon = styled.div`
+  color: var(--color-text-3);
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `
 
 const ContentContainer = styled.div`
@@ -274,5 +440,6 @@ const SortButton = styled(Button)<{ active?: boolean }>`
     font-size: 12px;
   }
 `
+const OperateButton = styled(Button)``
 
 export default FilesPage

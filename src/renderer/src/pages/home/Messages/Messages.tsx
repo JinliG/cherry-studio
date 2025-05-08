@@ -1,6 +1,5 @@
 import Scrollbar from '@renderer/components/Scrollbar'
 import { LOAD_MORE_COUNT } from '@renderer/config/constant'
-import { ATTACHED_TEXT_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useMessageOperations, useTopicMessages } from '@renderer/hooks/useMessageOperations'
@@ -20,7 +19,7 @@ import {
   runAsyncFunction
 } from '@renderer/utils'
 import { flatten, last, take } from 'lodash'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import BeatLoader from 'react-spinners/BeatLoader'
@@ -40,7 +39,7 @@ interface MessagesProps {
 
 const Messages: React.FC<MessagesProps> = ({ assistant, topic, setActiveTopic }) => {
   const { t } = useTranslation()
-  const { showTopics, topicPosition, showAssistants, messageNavigation } = useSettings()
+  const { topicPosition, messageNavigation } = useSettings()
   const { updateTopic, addTopic } = useAssistant(assistant.id)
   const dispatch = useAppDispatch()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -61,13 +60,6 @@ const Messages: React.FC<MessagesProps> = ({ assistant, topic, setActiveTopic })
     setDisplayMessages(newDisplayMessages)
     setHasMore(messages.length > displayCount)
   }, [messages, displayCount])
-
-  const maxWidth = useMemo(() => {
-    const showRightTopics = showTopics && topicPosition === 'right'
-    const minusAssistantsWidth = showAssistants ? '- var(--assistants-width)' : ''
-    const minusRightTopicsWidth = showRightTopics ? '- var(--assistants-width)' : ''
-    return `calc(100vw - var(--sidebar-width) ${minusAssistantsWidth} ${minusRightTopicsWidth} - 5px)`
-  }, [showAssistants, showTopics, topicPosition])
 
   const scrollToBottom = useCallback(() => {
     if (containerRef.current) {

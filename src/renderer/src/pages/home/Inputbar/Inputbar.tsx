@@ -52,12 +52,11 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
-import InputSuggestions from '../components/InputSuggestions'
 import NarrowLayout from '../Messages/NarrowLayout'
 import AttachmentButton, { AttachmentButtonRef } from './AttachmentButton'
 import AttachmentPreview from './AttachmentPreview'
-import GenerateImageButton from './GenerateImageButton'
 import CompanyTemplateButton from './CompanyTemplateButton'
+import GenerateImageButton from './GenerateImageButton'
 import KnowledgeBaseButton, { KnowledgeBaseButtonRef } from './KnowledgeBaseButton'
 import KnowledgeBaseInput from './KnowledgeBaseInput'
 import MCPToolsButton, { MCPToolsButtonRef } from './MCPToolsButton'
@@ -74,7 +73,6 @@ interface Props {
   setActiveTopic: (topic: Topic) => void
 }
 
-let _lastInputText = ''
 let _text = ''
 let _files: FileType[] = []
 
@@ -157,7 +155,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
   const cleanTopicShortcut = useShortcutDisplay('clear_topic')
   const inputEmpty = isEmpty(text.trim()) && files.length === 0
 
-  _lastInputText = text ? text : _lastInputText
   _text = text
   _files = files
 
@@ -890,7 +887,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
 
   return (
     <Container onDragOver={handleDragOver} onDrop={handleDrop} className="inputbar">
-      <InputSuggestions lastInputText={_lastInputText} assistant={assistant} messages={activeTopic?.messages} />
       <NarrowLayout style={{ width: '100%' }}>
         <QuickPanelView setInputText={setText} />
         <InputBarContainer

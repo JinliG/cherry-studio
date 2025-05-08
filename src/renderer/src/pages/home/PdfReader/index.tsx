@@ -1,22 +1,18 @@
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
-import {
-  InsertRowLeftOutlined,
-  InsertRowRightOutlined,
-  SelectOutlined,
-  UnorderedListOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined
-} from '@ant-design/icons'
+import { SelectOutlined, UnorderedListOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { Assistant, AttachedPage, Topic } from '@renderer/types'
-import { Button, Checkbox, Empty, Flex, InputNumber, Space, Spin } from 'antd'
+import { Button, Checkbox, Empty, Flex, InputNumber, Popover, Space, Spin } from 'antd'
 import { debounce, filter, find } from 'lodash'
+import { PanelRight } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Document, Outline, Page, pdfjs } from 'react-pdf'
 import styled from 'styled-components'
+
+import FilePicker from './FilePicker'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = {
@@ -34,13 +30,11 @@ interface Props {
   assistant: Assistant
   topic: Topic
   pageWidth: number
-  readerLayout: 'left' | 'right'
   setActiveTopic: (topic: Topic) => void
-  setReaderLayout: (layout: 'left' | 'right') => void
 }
 
 const PdfReader: React.FC<Props> = (props) => {
-  const { topic, pageWidth, assistant, readerLayout = 'left', setActiveTopic, setReaderLayout } = props
+  const { topic, pageWidth, assistant, setActiveTopic } = props
   const { attachedPages = [] } = topic
 
   const { t } = useTranslation()
@@ -55,39 +49,41 @@ const PdfReader: React.FC<Props> = (props) => {
   const [scale, setScale] = useState(1)
   const [pageRefs, setPageRefs] = useState<React.RefObject<HTMLDivElement>[]>([])
 
+  const [filePickerOpen, setFilePickerOpen] = useState(false)
+
   const [noOutline, setNoOutline] = useState(false)
 
   useEffect(() => {
     setPageRefs(Array.from({ length: pageTotal }, () => React.createRef<any>()))
   }, [pageTotal])
 
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 1
-    }
+  // useEffect(() => {
+  //   const observerOptions = {
+  //     root: null,
+  //     rootMargin: '0px',
+  //     threshold: 1
+  //   }
 
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const page = parseInt(entry.target.id.split('_')[1], 10)
-          setPageCurrent(page)
-        }
-      })
-    }
+  //   const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+  //     entries.forEach((entry) => {
+  //       if (entry.isIntersecting) {
+  //         const page = parseInt(entry.target.id.split('_')[1], 10)
+  //         setPageCurrent(page)
+  //       }
+  //     })
+  //   }
 
-    const observer = new IntersectionObserver(handleIntersection, observerOptions)
-    pageRefs.forEach((ref) => {
-      if (ref.current) {
-        observer.observe(ref.current)
-      }
-    })
+  //   const observer = new IntersectionObserver(handleIntersection, observerOptions)
+  //   pageRefs.forEach((ref) => {
+  //     if (ref.current) {
+  //       observer.observe(ref.current)
+  //     }
+  //   })
 
-    return () => {
-      observer.disconnect()
-    }
-  }, [pageRefs, pageWidth])
+  //   return () => {
+  //     observer.disconnect()
+  //   }
+  // }, [pageRefs, pageWidth])
 
   useEffect(() => {
     const loadFile = async () => {
@@ -195,10 +191,15 @@ const PdfReader: React.FC<Props> = (props) => {
                   />
                   /<span className="page-total">{pageTotal}</span>
                 </Pagination>
-                <OperateButton
-                  icon={readerLayout === 'left' ? <InsertRowRightOutlined /> : <InsertRowLeftOutlined />}
-                  onClick={() => setReaderLayout(readerLayout === 'left' ? 'right' : 'left')}
-                />
+                <Popover
+                  arrow={false}
+                  open={filePickerOpen}
+                  trigger={[]}
+                  content={<FilePicker assistant={assistant} onClose={() => setFilePickerOpen(false)} />}
+                  placement="bottomRight"
+                  destroyTooltipOnHide>
+                  <OperateButton onClick={() => setFilePickerOpen(!filePickerOpen)} icon={<PanelRight size={16} />} />
+                </Popover>
               </Space>
             </Flex>
             <OutlineWrapper className={showIndex ? 'visible' : ''}>
@@ -344,6 +345,7 @@ const OutlineWrapper = styled.div`
   transition: width 0.2s ease-in-out;
 
   &.visible {
+    padding-top: 20px;
     height: 240px;
   }
 

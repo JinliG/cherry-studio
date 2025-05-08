@@ -5,6 +5,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { useAppDispatch } from '@renderer/store'
 import {
   AssistantIconType,
+  DEFAULT_HIDE_SIDEBAR_ICONS,
   DEFAULT_SIDEBAR_ICONS,
   setAssistantIconType,
   setClickAssistantToShowTopic,
@@ -40,7 +41,7 @@ const DisplaySettings: FC = () => {
   const dispatch = useAppDispatch()
 
   const [visibleIcons, setVisibleIcons] = useState(sidebarIcons?.visible || DEFAULT_SIDEBAR_ICONS)
-  const [disabledIcons, setDisabledIcons] = useState(sidebarIcons?.disabled || [])
+  const [disabledIcons, setDisabledIcons] = useState(sidebarIcons?.disabled || DEFAULT_HIDE_SIDEBAR_ICONS)
 
   const handleWindowStyleChange = useCallback(
     (checked: boolean) => {
@@ -51,7 +52,7 @@ const DisplaySettings: FC = () => {
 
   const handleReset = useCallback(() => {
     setVisibleIcons([...DEFAULT_SIDEBAR_ICONS])
-    setDisabledIcons([])
+    setDisabledIcons([...DEFAULT_HIDE_SIDEBAR_ICONS])
     dispatch(setSidebarIcons({ visible: DEFAULT_SIDEBAR_ICONS, disabled: [] }))
   }, [dispatch])
 

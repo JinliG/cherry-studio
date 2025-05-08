@@ -88,7 +88,7 @@ class WebSearchService {
    * @param query 搜索查询
    * @returns 搜索响应
    */
-  public async search(provider: WebSearchProvider, query: string): Promise<WebSearchResponse> {
+  public async search(provider: WebSearchProvider, query: string, noContent?: boolean): Promise<WebSearchResponse> {
     const websearch = this.getWebSearchState()
     const webSearchEngine = new WebSearchEngineProvider(provider)
 
@@ -99,7 +99,7 @@ class WebSearchService {
     }
 
     try {
-      return await webSearchEngine.search(formattedQuery, websearch)
+      return await webSearchEngine.search(formattedQuery, websearch, noContent)
     } catch (error) {
       console.error('Search failed:', error)
       throw new Error(`Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
