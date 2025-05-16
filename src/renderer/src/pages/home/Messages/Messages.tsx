@@ -25,6 +25,7 @@ import InfiniteScroll from 'react-infinite-scroll-component'
 import BeatLoader from 'react-spinners/BeatLoader'
 import styled from 'styled-components'
 
+import StructureMeta from '../StructureMeta'
 import ChatNavigation from './ChatNavigation'
 import MessageAnchorLine from './MessageAnchorLine'
 import MessageGroup from './MessageGroup'
@@ -40,7 +41,7 @@ interface MessagesProps {
 const Messages: React.FC<MessagesProps> = ({ assistant, topic, setActiveTopic }) => {
   const { t } = useTranslation()
   const { topicPosition, messageNavigation } = useSettings()
-  const { updateTopic, addTopic } = useAssistant(assistant.id)
+  const { updateTopic, addTopic, assistant: currentAssistant } = useAssistant(assistant.id)
   const dispatch = useAppDispatch()
   const containerRef = useRef<HTMLDivElement>(null)
   const [displayMessages, setDisplayMessages] = useState<Message[]>([])
@@ -233,6 +234,7 @@ const Messages: React.FC<MessagesProps> = ({ assistant, topic, setActiveTopic })
             ))}
           </ScrollContainer>
         </InfiniteScroll>
+        {currentAssistant.attachedTemplate && <StructureMeta assistant={currentAssistant} topic={topic} />}
         <Prompt assistant={assistant} key={assistant.prompt} topic={topic} />
       </NarrowLayout>
       {messageNavigation === 'anchor' && <MessageAnchorLine messages={displayMessages} />}

@@ -25,7 +25,7 @@ const CompanyTemplateSelector: FC<Props> = ({ assistant }) => {
   const onSelect = (selected: CompanyTemplate) => {
     updateAssistant({
       ...currentAssistant,
-      companyTemplate: selected
+      attachedTemplate: selected
     })
   }
 
@@ -35,7 +35,7 @@ const CompanyTemplateSelector: FC<Props> = ({ assistant }) => {
         <EmptyMessage>{t('暂无企业信息模板')}</EmptyMessage>
       ) : (
         <Select
-          value={currentAssistant.companyTemplate?.id}
+          value={currentAssistant.attachedTemplate?.id}
           allowClear
           placeholder={t('请选择择企业信息模板')}
           menuItemSelectedIcon={<CheckOutlined />}
@@ -50,7 +50,7 @@ const CompanyTemplateSelector: FC<Props> = ({ assistant }) => {
             newSelected && onSelect(newSelected)
           }}
           onClear={() => {
-            updateAssistant({ ...assistant, companyTemplate: undefined })
+            updateAssistant({ ...assistant, attachedTemplate: undefined })
           }}
           style={{ width: '200px' }}
         />
@@ -70,7 +70,7 @@ const CompanyTemplateButton: FC<Props> = ({ assistant, disabled, ToolbarButton }
         overlayStyle={{ maxWidth: 400 }}
         trigger="click">
         <ToolbarButton type="text" disabled={disabled}>
-          <ClusterOutlined style={{ color: assistant.companyTemplate ? 'var(--color-link)' : 'var(--color-icon)' }} />
+          <ClusterOutlined style={{ color: assistant.attachedTemplate ? 'var(--color-link)' : 'var(--color-icon)' }} />
         </ToolbarButton>
       </Popover>
     </Tooltip>

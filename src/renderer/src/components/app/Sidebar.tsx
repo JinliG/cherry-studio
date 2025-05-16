@@ -1,4 +1,4 @@
-import { ClusterOutlined, DeliveredProcedureOutlined } from '@ant-design/icons'
+import { ClusterOutlined } from '@ant-design/icons'
 import { isMac } from '@renderer/config/constant'
 import { AppLogo, UserAvatar } from '@renderer/config/env'
 import { useTheme } from '@renderer/context/ThemeProvider'
@@ -138,8 +138,7 @@ const MainMenus: FC = () => {
     minapp: <LayoutGrid size={18} className="icon" />,
     knowledge: <FileSearch size={18} className="icon" />,
     files: <Folder size={17} className="icon" />,
-    company_template: <ClusterOutlined />,
-    company_card: <DeliveredProcedureOutlined />
+    company_template: <ClusterOutlined />
   }
 
   const pathMap = {
@@ -150,8 +149,7 @@ const MainMenus: FC = () => {
     minapp: '/apps',
     knowledge: '/knowledge',
     files: '/files',
-    company_template: '/company_template',
-    company_card: '/company_card'
+    company_template: '/company_template'
   }
 
   return sidebarIcons.visible.map((icon) => {

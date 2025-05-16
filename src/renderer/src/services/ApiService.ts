@@ -50,11 +50,13 @@ export async function fetchChatCompletion({
   message,
   messages,
   assistant,
+  webSearchContent,
   onResponse
 }: {
   message: Message
   messages: Message[]
   assistant: Assistant
+  webSearchContent?: string
   onResponse: (message: Message) => void
 }) {
   const provider = getAssistantProvider(assistant)
@@ -74,20 +76,26 @@ export async function fetchChatCompletion({
       ...assistant,
       prompt: SEARCH_SUMMARY_PROMPT
     }
+    const webSearchUserMessage: Message = {
+      ...lastUserMessage,
+      content: webSearchContent ? webSearchContent : lastUserMessage.content
+    }
+
     const keywords = await fetchSearchSummary({
-      messages: lastAnswer ? [lastAnswer, lastUserMessage] : [lastUserMessage],
+      messages: lastAnswer ? [lastAnswer, webSearchUserMessage] : [webSearchUserMessage],
       assistant: summaryAssistant
     })
+
     try {
       return extractInfoFromXML(keywords || '')
     } catch (e: any) {
       console.error('extract error', e)
       return {
         websearch: {
-          question: [lastUserMessage.content]
+          question: [webSearchUserMessage.content]
         },
         knowledge: {
-          question: [lastUserMessage.content]
+          question: [webSearchUserMessage.content]
         }
       } as ExtractResults
     }
@@ -118,7 +126,7 @@ export async function fetchChatCompletion({
         webSearchProvider,
         extractResults
       )
-      // console.log('webSearchResponse', webSearchResponse)
+      console.log('webSearchResponse', webSearchResponse)
       // 处理搜索结果
       message.metadata = {
         ...message.metadata,

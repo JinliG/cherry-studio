@@ -16,15 +16,8 @@ export type SidebarIcon =
   | 'knowledge'
   | 'files'
   | 'company_template'
-  | 'company_card'
 
-export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = [
-  'assistants',
-  'knowledge',
-  'files',
-  'company_template',
-  'company_card'
-]
+export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = ['assistants', 'knowledge', 'files', 'company_template']
 export const DEFAULT_HIDE_SIDEBAR_ICONS: SidebarIcon[] = ['agents', 'paintings', 'translate', 'minapp']
 
 export interface NutstoreSyncRuntime extends WebDAVSyncState {}

@@ -1,4 +1,4 @@
-import { CloseOutlined, ClusterOutlined, DeliveredProcedureOutlined } from '@ant-design/icons'
+import { CloseOutlined, ClusterOutlined } from '@ant-design/icons'
 import {
   DragDropContext,
   Draggable,
@@ -116,8 +116,7 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
       minapp: <LayoutGrid size={16} />,
       knowledge: <LibraryBig size={16} />,
       files: <Folder size={15} />,
-      company_template: <ClusterOutlined />,
-      company_card: <DeliveredProcedureOutlined />
+      company_template: <ClusterOutlined />
     }),
     []
   )

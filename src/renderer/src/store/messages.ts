@@ -1,5 +1,4 @@
 import { createAsyncThunk, createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { ATTACHED_DOCUMENT_PROMPT, ATTACHED_TEMPLATE_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { autoRenameTopic, TopicManager } from '@renderer/hooks/useTopic'
 import i18n from '@renderer/i18n'
@@ -229,6 +228,7 @@ export const sendMessage =
       resendAssistantMessage?: Message | Message[]
       isMentionModel?: boolean
       mentions?: Model[]
+      webSearchContent?: string
     }
   ) =>
   async (dispatch: AppDispatch, getState: () => RootState) => {
@@ -352,38 +352,6 @@ export const sendMessage =
                 : topic.prompt
             }
 
-            // add page content context
-            if (!isEmpty(topic.attachedPages)) {
-              const pageContent =
-                topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
-              const pagePrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
-              assistantWithModel.prompt = assistantWithModel.prompt
-                ? `${assistantWithModel.prompt}\n${pagePrompt}`
-                : pagePrompt
-            }
-
-            // add file content context
-            if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
-              const documentContent = await (
-                await window.api.file.read(assistant.attachedDocument?.id + assistant.attachedDocument?.ext)
-              ).trim()
-              const documentPrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', documentContent)
-              assistantWithModel.prompt = assistantWithModel.prompt
-                ? `${assistantWithModel.prompt}\n${documentPrompt}`
-                : documentContent
-            }
-
-            // add company template context
-            if (assistant.companyTemplate && !assistant.companyTemplate.disabled) {
-              const templatePrompt = ATTACHED_TEMPLATE_PROMPT.replace(
-                '{company_template}',
-                assistant.companyTemplate.structure
-              )
-              assistantWithModel.prompt = assistantWithModel.prompt
-                ? `${assistantWithModel.prompt}\n${templatePrompt}`
-                : templatePrompt
-            }
-
             // 节流
             const throttledDispatch = throttle(handleResponseMessageUpdate, 100, { trailing: true }) // 100ms的节流时间应足够平衡用户体验和性能
             // 寻找当前正在处理的消息在消息列表中的位置
@@ -406,6 +374,7 @@ export const sendMessage =
               message: { ...assistantMessage },
               messages: handleMessages(),
               assistant: assistantWithModel,
+              webSearchContent: options?.webSearchContent,
               onResponse: async (msg) => {
                 // 允许在回调外维护一个最新的消息状态，每次都更新这个对象，但只通过节流函数分发到Redux
                 const updateMessage = { ...msg, status: msg.status || 'pending', content: msg.content || '' }

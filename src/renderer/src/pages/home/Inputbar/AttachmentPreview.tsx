@@ -101,7 +101,7 @@ const AttachmentPreview: FC<Props> = ({
   updateAssistant
 }) => {
   const { attachedText, attachedPages } = topic
-  const { attachedDocument, companyTemplate: attachedTemplate } = assistant
+  const { attachedDocument } = assistant
   const { t } = useTranslation()
 
   const getFileIcon = (type?: string) => {
@@ -152,10 +152,6 @@ const AttachmentPreview: FC<Props> = ({
     return <FileUnknownFilled />
   }
 
-  const handleRemoveFile = (item: any) => {
-    setFiles(files.filter((file) => item.uid !== file.id))
-  }
-
   const handleRemoveAttachedText = () => {
     updateAndSetActiveTopic({ ...topic, attachedText: undefined })
   }
@@ -184,22 +180,10 @@ const AttachmentPreview: FC<Props> = ({
     }
   }
 
-  const onTriggerAttachedTemplateEnabled = () => {
-    if (attachedTemplate) {
-      updateAssistant({
-        ...assistant,
-        companyTemplate: {
-          ...attachedTemplate,
-          disabled: !attachedTemplate.disabled
-        }
-      })
-    }
-  }
-
   const Attachments = useMemo(() => {
     const attachments: ReactNode[] = []
 
-    if (attachedDocument || attachedTemplate) {
+    if (attachedDocument) {
       attachments.push(
         <Space>
           {attachedDocument && (
@@ -209,15 +193,6 @@ const AttachmentPreview: FC<Props> = ({
               onClick={onTriggerAttachedDocumentEnabled}>
               {!attachedDocument.disabled && t('正在关联 ')}
               {attachedDocument?.origin_name}
-            </RadioButton>
-          )}
-          {attachedTemplate && (
-            <RadioButton
-              key="attachedTemplate"
-              checked={!attachedTemplate.disabled}
-              onClick={onTriggerAttachedTemplateEnabled}>
-              {!attachedTemplate.disabled && t('正在使用 ')}
-              {attachedTemplate.name}
             </RadioButton>
           )}
         </Space>
@@ -270,7 +245,7 @@ const AttachmentPreview: FC<Props> = ({
     }
 
     return attachments
-  }, [files, attachedDocument, attachedTemplate, attachedText, attachedPages])
+  }, [files, attachedDocument, attachedText, attachedPages])
 
   if (isEmpty(Attachments)) {
     return null

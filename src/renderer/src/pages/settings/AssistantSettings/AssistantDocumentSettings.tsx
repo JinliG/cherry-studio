@@ -25,7 +25,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
 
   const onUpdate = (value) => {
     const template = companyTemplateState.templates.find((t) => t.id === value)
-    const _assistant: Assistant = { ...assistant, companyTemplate: template }
+    const _assistant: Assistant = { ...assistant, attachedTemplate: template }
     updateAssistant(_assistant)
   }
 
@@ -84,13 +84,13 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
         </Box>
         <Select
           allowClear
-          value={assistant.companyTemplate?.id}
+          value={assistant.attachedTemplate?.id}
           placeholder={t('选择企业信息模板')}
           menuItemSelectedIcon={<CheckOutlined />}
           options={templateOptions}
           onChange={(value) => onUpdate(value)}
           onClear={() => {
-            updateAssistant({ ...assistant, companyTemplate: undefined })
+            updateAssistant({ ...assistant, attachedTemplate: undefined })
           }}
           filterOption={(input, option) =>
             String(option?.label ?? '')

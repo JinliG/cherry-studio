@@ -57,34 +57,6 @@ const PdfReader: React.FC<Props> = (props) => {
     setPageRefs(Array.from({ length: pageTotal }, () => React.createRef<any>()))
   }, [pageTotal])
 
-  // useEffect(() => {
-  //   const observerOptions = {
-  //     root: null,
-  //     rootMargin: '0px',
-  //     threshold: 1
-  //   }
-
-  //   const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-  //     entries.forEach((entry) => {
-  //       if (entry.isIntersecting) {
-  //         const page = parseInt(entry.target.id.split('_')[1], 10)
-  //         setPageCurrent(page)
-  //       }
-  //     })
-  //   }
-
-  //   const observer = new IntersectionObserver(handleIntersection, observerOptions)
-  //   pageRefs.forEach((ref) => {
-  //     if (ref.current) {
-  //       observer.observe(ref.current)
-  //     }
-  //   })
-
-  //   return () => {
-  //     observer.disconnect()
-  //   }
-  // }, [pageRefs, pageWidth])
-
   useEffect(() => {
     const loadFile = async () => {
       if (assistant.attachedDocument) {
@@ -132,11 +104,11 @@ const PdfReader: React.FC<Props> = (props) => {
 
   const onZoomIn = debounce(() => {
     setScale(scale + 0.2)
-  }, 100)
+  }, 200)
 
   const onZoomOut = debounce(() => {
     setScale(scale - 0.2)
-  }, 100)
+  }, 200)
 
   const onLoadSuccess = (pdf: any) => {
     setPageTotal(pdf.numPages)
@@ -299,7 +271,7 @@ const PageWrapper = styled.div`
 `
 
 const OperationBar = styled.div`
-  z-index: 4;
+  z-index: 5;
   position: sticky;
   top: 0;
   right: 0;

@@ -456,7 +456,7 @@
       "add": {
         "title": "新建",
         "name": "名称",
-        "name_placeholder": "请输入名称",
+        "name_placeholder": "请输入企业/集团名称",
         "structure": "结构化数据",
         "desc": "描述",
         "desc_placeholder": "请输入描述"
@@ -468,9 +468,6 @@
       "diagram": {
         "title": "企业信息图谱"
       }
-    },
-    "company_card": {
-      "title": "企业卡片"
     },
     "languages": {
       "arabic": "阿拉伯文",
@@ -1468,6 +1465,9 @@
       "attaching": "正在关联 ",
       "page_num": "第{{index}}页",
       "outline.empty": "无可读目录"
+    },
+    "structure_meta": {
+      "extract": "提取信息"
     }
   }
 }

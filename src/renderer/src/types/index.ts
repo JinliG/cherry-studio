@@ -19,7 +19,7 @@ export type Assistant = {
   enableWebSearch?: boolean
   enableGenerateImage?: boolean
   mcpServers?: MCPServer[]
-  companyTemplate?: CompanyTemplate & { disabled?: boolean }
+  attachedTemplate?: CompanyTemplate & { disabled?: boolean }
   attachedDocument?: FileType & { disabled?: boolean }
 }
 
@@ -369,7 +369,6 @@ export type SidebarIcon =
   | 'knowledge'
   | 'files'
   | 'company_template'
-  | 'company_card'
 
 export type WebSearchProvider = {
   id: string
@@ -533,3 +532,17 @@ export interface QuickPhrase {
   updatedAt: number
   order?: number
 }
+
+// 企业信息模板&图谱
+export interface InfoMetric {
+  name: string
+  prompt: string
+  value?: string
+}
+
+export interface InfoGroup {
+  group: string
+  metrics: InfoMetric[]
+}
+
+export type InfoStructure = (InfoGroup | InfoMetric[])[]

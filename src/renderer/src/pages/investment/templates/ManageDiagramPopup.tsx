@@ -1,12 +1,13 @@
 import { TopView } from '@renderer/components/TopView'
 import { useCompanyDiagram, useCompanyDiagrams } from '@renderer/hooks/useCompanyTemplates'
-import { CompanyDiagram } from '@renderer/types'
+import { CompanyDiagram, InfoMetric, InfoStructure } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { Button, Flex, Form, FormInstance, Input, Modal, Switch } from 'antd'
 import { Descriptions } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import html2canvas from 'html2canvas-pro'
 import { JsonData, JsonEditor } from 'json-edit-react'
+import { map } from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -32,8 +33,8 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   const formRef = useRef<FormInstance>(null)
 
   const [open, setOpen] = useState(true)
-  const [jsonData, setJsonData] = useState({})
-  const [descriptionData, setDescriptionData] = useState<Record<string, { label: string; value: string }[]>>({})
+  // const [jsonData, setJsonData] = useState({})
+  const [infoStructure, setInfoStructure] = useState<InfoStructure>([])
   const [isPreview, setIsPreview] = useState(false) // 新增状态来控制预览模式
 
   const onFinish = (values: FieldType) => {
@@ -70,11 +71,11 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   }
 
   const onSetJsonData = (data: JsonData) => {
-    setJsonData(data)
+    setInfoStructure(data as InfoStructure)
     try {
       form.setFieldValue('structure', JSON.stringify(data))
     } catch (error) {
-      console.error('--- ', error)
+      console.error(error)
     }
   }
 
@@ -83,37 +84,13 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   }
 
   useEffect(() => {
-    let jsonData = {}
+    let jsonData = []
     try {
       jsonData = JSON.parse(current?.structure)
     } catch (error) {
-      console.error('--- ', error)
+      console.error(error)
     }
-    setJsonData(jsonData)
-
-    // 转换 jsonData 为 descriptionData
-    const transformedData = Object.entries(jsonData).reduce(
-      (acc, [groupName, groupData]: [any, any]) => {
-        if (Array.isArray(groupData)) {
-          acc[groupName] = groupData.map(({ name, value }) => ({
-            label: name,
-            value
-          }))
-        } else {
-          acc[groupName] = [
-            {
-              label: groupName,
-              value: groupData.value
-            }
-          ]
-        }
-
-        return acc
-      },
-      {} as Record<string, { label: string; value: string }[]>
-    )
-
-    setDescriptionData(transformedData)
+    setInfoStructure(jsonData)
   }, [isEditing, current?.structure])
 
   return (
@@ -158,28 +135,40 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
             />
             {isPreview ? (
               <Descriptions column={1} size="small">
-                {Object.entries(descriptionData).map(([groupName, fields]) => (
-                  <Descriptions.Item key={groupName}>
-                    <Descriptions
-                      styles={{
-                        header: {
-                          marginBottom: 8
-                        }
-                      }}
-                      title={groupName}
-                      bordered
-                      column={2}>
-                      {fields.map((field, index) => (
-                        <Descriptions.Item key={index} label={field.label}>
-                          <SimpleMarkdown>{field.value}</SimpleMarkdown>
-                        </Descriptions.Item>
-                      ))}
-                    </Descriptions>
-                  </Descriptions.Item>
-                ))}
+                {map(infoStructure, (item, index) => {
+                  let groupName = ''
+                  let list: InfoMetric[] = []
+                  if (Array.isArray(item)) {
+                    groupName = '其他'
+                    list = item
+                  } else {
+                    groupName = item.group
+                    list = item.metrics
+                  }
+
+                  return (
+                    <Descriptions.Item key={index}>
+                      <Descriptions
+                        styles={{
+                          header: {
+                            marginBottom: 8
+                          }
+                        }}
+                        title={groupName}
+                        bordered
+                        column={2}>
+                        {list.map((field, index) => (
+                          <Descriptions.Item key={index} label={field.name}>
+                            <SimpleMarkdown>{field.value as any}</SimpleMarkdown>
+                          </Descriptions.Item>
+                        ))}
+                      </Descriptions>
+                    </Descriptions.Item>
+                  )
+                })}
               </Descriptions>
             ) : (
-              <JsonEditor data={jsonData} setData={onSetJsonData} />
+              <JsonEditor data={infoStructure} setData={onSetJsonData} />
             )}
           </div>
         </Form.Item>
@@ -198,7 +187,7 @@ const PreviewContainer: React.FC<Props> = ({ resolve, id = '' }) => {
   const formRef = useRef<FormInstance>(null)
 
   const [open, setOpen] = useState(true)
-  const [descriptionData, setDescriptionData] = useState<Record<string, { label: string; value: string }[]>>({})
+  const [infoStructure, setInfoStructure] = useState<InfoStructure>([])
 
   const onCancel = () => {
     setOpen(false)
@@ -209,36 +198,13 @@ const PreviewContainer: React.FC<Props> = ({ resolve, id = '' }) => {
   }
 
   useEffect(() => {
-    let jsonData = {}
+    let jsonData = []
     try {
       jsonData = JSON.parse(current?.structure)
     } catch (error) {
-      console.error('--- ', error)
+      console.error(error)
     }
-
-    // 转换 jsonData 为 descriptionData
-    const transformedData = Object.entries(jsonData).reduce(
-      (acc, [groupName, groupData]: [any, any]) => {
-        if (Array.isArray(groupData)) {
-          acc[groupName] = groupData.map(({ name, value }) => ({
-            label: name,
-            value
-          }))
-        } else {
-          acc[groupName] = [
-            {
-              label: groupName,
-              value: groupData.value
-            }
-          ]
-        }
-
-        return acc
-      },
-      {} as Record<string, { label: string; value: string }[]>
-    )
-
-    setDescriptionData(transformedData)
+    setInfoStructure(jsonData)
   }, [current?.structure])
 
   const onCaptureScreen = () => {
@@ -281,25 +247,37 @@ const PreviewContainer: React.FC<Props> = ({ resolve, id = '' }) => {
       </Flex>
       <div ref={containerRef}>
         <Descriptions column={1} size="small">
-          {Object.entries(descriptionData).map(([groupName, fields]) => (
-            <Descriptions.Item key={groupName}>
-              <Descriptions
-                styles={{
-                  header: {
-                    marginBottom: 8
-                  }
-                }}
-                title={groupName}
-                bordered
-                column={2}>
-                {fields.map((field, index) => (
-                  <Descriptions.Item key={index} label={field.label}>
-                    <SimpleMarkdown>{field.value}</SimpleMarkdown>
-                  </Descriptions.Item>
-                ))}
-              </Descriptions>
-            </Descriptions.Item>
-          ))}
+          {map(infoStructure, (item, index) => {
+            let groupName = ''
+            let list: InfoMetric[] = []
+            if (Array.isArray(item)) {
+              groupName = '其他'
+              list = item
+            } else {
+              groupName = item.group
+              list = item.metrics
+            }
+
+            return (
+              <Descriptions.Item key={index}>
+                <Descriptions
+                  styles={{
+                    header: {
+                      marginBottom: 8
+                    }
+                  }}
+                  title={groupName}
+                  bordered
+                  column={2}>
+                  {list.map((field, index) => (
+                    <Descriptions.Item key={index} label={field.name}>
+                      <SimpleMarkdown>{field.value as any}</SimpleMarkdown>
+                    </Descriptions.Item>
+                  ))}
+                </Descriptions>
+              </Descriptions.Item>
+            )
+          })}
         </Descriptions>
       </div>
     </Modal>

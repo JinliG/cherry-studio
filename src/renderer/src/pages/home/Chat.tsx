@@ -4,6 +4,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
 import { Assistant, Topic } from '@renderer/types'
 import { Flex } from 'antd'
+import { debounce } from 'lodash'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { FC, useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
@@ -45,17 +46,12 @@ const Chat: FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    const handleResize = (entries: ResizeObserverEntry[]) => {
+    const handleResize = debounce((entries: ResizeObserverEntry[]) => {
       for (const entry of entries) {
-        if (entry.contentBoxSize) {
-          // Firefox implements `contentBoxSize` as a single content rect, rather than an array
-          const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize
-          setWrapperWidth(contentBoxSize.inlineSize)
-        } else {
-          setWrapperWidth(entry.contentRect.width)
-        }
+        const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize
+        setWrapperWidth(contentBoxSize.inlineSize)
       }
-    }
+    }, 200)
 
     if (wrapperRef.current) {
       const resizeObserver = new ResizeObserver(handleResize)
@@ -70,20 +66,36 @@ const Chat: FC<Props> = (props) => {
   }, [wrapperRef.current])
 
   const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 56 : 0), [wrapperWidth])
+
   const sidePageWidth = useMemo(() => {
-    if (isCollapse) {
+    if (isCollapse || !currentAssistant.attachedDocument) {
       return 0
     }
+    return pageWidth
+  }, [isCollapse, currentAssistant.attachedDocument, pageWidth])
 
-    return currentAssistant.attachedDocument ? pageWidth : 0
-  }, [currentAssistant.attachedDocument, pageWidth, isCollapse])
+  const dynamicStyles = useMemo(() => {
+    const styles: Record<string, any> = {}
+
+    if (showAssistants) {
+      styles.minusAssistantsWidth = '- var(--assistants-width)'
+    } else {
+      styles.minusAssistantsWidth = ''
+    }
+
+    if (showTopics && topicPosition === 'right') {
+      styles.minusRightTopicsWidth = '- var(--assistants-width)'
+    } else {
+      styles.minusRightTopicsWidth = ''
+    }
+
+    return styles
+  }, [showAssistants, showTopics, topicPosition])
 
   const maxWidth = useMemo(() => {
-    const showRightTopics = showTopics && topicPosition === 'right'
-    const minusAssistantsWidth = showAssistants ? '- var(--assistants-width)' : ''
-    const minusRightTopicsWidth = showRightTopics ? '- var(--assistants-width)' : ''
+    const { minusAssistantsWidth, minusRightTopicsWidth } = dynamicStyles
     return `calc(100vw - var(--sidebar-width) ${minusAssistantsWidth} ${minusRightTopicsWidth} - 5px - ${sidePageWidth}px)`
-  }, [showAssistants, showTopics, topicPosition, sidePageWidth])
+  }, [dynamicStyles, sidePageWidth])
 
   const CollapseIcon = useMemo(() => {
     if (isCollapse) return ChevronRight
@@ -166,7 +178,7 @@ const collapseButtonBaseStyles = `
   display: flex;
   align-items: center;
 
-  transition: all 0.3s ease-in-out;
+  transition: transform 0.5s ease-in-out;
 `
 
 const getCollapseButtonPositionStyles = (isCollapse: boolean) => {

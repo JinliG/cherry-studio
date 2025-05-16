@@ -3796,6 +3796,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-window-infinite-loader@npm:^1":
+  version: 1.0.9
+  resolution: "@types/react-window-infinite-loader@npm:1.0.9"
+  dependencies:
+    "@types/react": "npm:*"
+    "@types/react-window": "npm:*"
+  checksum: 10c0/d4f0b1c36cbca7d01c50740c942275f3e6dadb13b0aa563c266e8ecdfbaa338fdb623cc59635fcbb7e37938dc295cb6d2949e9f9aff6098faf2089d2e3752da6
+  languageName: node
+  linkType: hard
+
+"@types/react-window@npm:*, @types/react-window@npm:^1":
+  version: 1.8.8
+  resolution: "@types/react-window@npm:1.8.8"
+  dependencies:
+    "@types/react": "npm:*"
+  checksum: 10c0/2170a3957752603e8b994840c5d31b72ddf94c427c0f42b0175b343cc54f50fe66161d8871e11786ec7a59906bd33861945579a3a8f745455a3744268ec1069f
+  languageName: node
+  linkType: hard
+
 "@types/react@npm:*, @types/react@npm:^19.0.12":
   version: 19.1.2
   resolution: "@types/react@npm:19.1.2"
@@ -4263,6 +4282,8 @@ __metadata:
     "@types/react": "npm:^19.0.12"
     "@types/react-dom": "npm:^19.0.4"
     "@types/react-infinite-scroll-component": "npm:^5.0.0"
+    "@types/react-window": "npm:^1"
+    "@types/react-window-infinite-loader": "npm:^1"
     "@types/tinycolor2": "npm:^1"
     "@types/ws": "npm:^8"
     "@vitejs/plugin-react": "npm:^4.4.1"

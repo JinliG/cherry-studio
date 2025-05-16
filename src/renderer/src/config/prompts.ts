@@ -354,3 +354,23 @@ export const ATTACHED_TEMPLATE_PROMPT = `用户目前正在使用企业信息模
   ]
 }
 `
+
+export const REFERENCE_DOCUMENT_PROMPT = `以下是参考资料内容：
+  {document_content}
+`
+
+export const REFERENCE_TEMPLATE_PROMPT = `
+  用户正在使用信息模板：
+  {company_template}
+  
+  - Goals: 助手使用信息模板中的每个指标的单独提示词，基于参考资料和查询到的信息，生成每个指标的值，并回填到对应的指标对象中，最终生成一个完整的新的json对象并返回。
+  - OutputFormat: 生成的json对象，其中每个指标对象包含name、prompt和value字段，value字段为根据prompt查询到的指标值，json 对象必须完成包含信息模板里的全部原始信息。
+  - Constrains: 
+  1. 生成的json对象必须严格遵循用户提供的信息模板结构，确保数据的准确性和完整性，同时要保证输出的格式规范、清晰。
+  2. 仅返回json对象，不要返回其他文本内容
+  3. 对于主观性较强的指标，可以根据上下文内容，结合专业经验和指标含义，生成对应的值
+  - Workflow:
+  1. 逐一解析信息模板中的每个指标对象，提取其prompt字段作为查询依据。
+  2. 基于prompt字段，结合参考资料和网络查询，生成对应的指标值。
+  3. 将生成的指标值作为value字段回填到对应的指标对象中，生成完整的新的json对象。
+`

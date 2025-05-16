@@ -68,7 +68,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
     try {
       form.setFieldValue('structure', JSON.stringify(data))
     } catch (error) {
-      console.error('--- ', error)
+      console.error(error)
     }
   }
 
@@ -78,7 +78,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
       try {
         jsonData = JSON.parse(current?.structure)
       } catch (error) {
-        console.error('--- ', error)
+        console.error(error)
       }
       setJsonData(jsonData)
     }
