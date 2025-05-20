@@ -1,6 +1,8 @@
 import { Readability } from '@mozilla/readability'
 import { nanoid } from '@reduxjs/toolkit'
-import { WebSearchResult } from '@renderer/types'
+import { WebSearchProviderResult } from '@renderer/types'
+import { createAbortPromise } from '@renderer/utils/abortController'
+import { isAbortError } from '@renderer/utils/error'
 import TurndownService from 'turndown'
 
 const turndownService = new TurndownService()
@@ -23,10 +25,11 @@ function isValidUrl(urlString: string): boolean {
 export async function fetchWebContents(
   urls: string[],
   format: ResponseFormat = 'markdown',
-  usingBrowser: boolean = false
-): Promise<WebSearchResult[]> {
+  usingBrowser: boolean = false,
+  httpOptions: RequestInit = {}
+): Promise<WebSearchProviderResult[]> {
   // parallel using fetchWebContent
-  const results = await Promise.allSettled(urls.map((url) => fetchWebContent(url, format, usingBrowser)))
+  const results = await Promise.allSettled(urls.map((url) => fetchWebContent(url, format, usingBrowser, httpOptions)))
   return results.map((result, index) => {
     if (result.status === 'fulfilled') {
       return result.value
@@ -43,39 +46,92 @@ export async function fetchWebContents(
 export async function fetchWebContent(
   url: string,
   format: ResponseFormat = 'markdown',
-  usingBrowser: boolean = false
-): Promise<WebSearchResult> {
+  usingBrowser: boolean = false,
+  httpOptions: RequestInit = {}
+): Promise<WebSearchProviderResult> {
   try {
     // Validate URL before attempting to fetch
     if (!isValidUrl(url)) {
       throw new Error(`Invalid URL format: ${url}`)
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+    // TODO: 状态扩展
+    const isPdf = url.endsWith('.pdf')
 
     let html: string
     if (usingBrowser) {
-      html = await window.api.searchService.openUrlInSearchWindow(`search-window-${nanoid()}`, url)
-    } else {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        signal: controller.signal
-      })
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`)
+      const windowApiPromise = window.api.searchService.openUrlInSearchWindow(`search-window-${nanoid()}`, url)
+
+      const promisesToRace: [Promise<string>] = [windowApiPromise]
+
+      if (httpOptions?.signal) {
+        const signal = httpOptions.signal
+        const abortPromise = createAbortPromise(signal, windowApiPromise)
+        promisesToRace.push(abortPromise)
       }
-      html = await response.text()
+
+      html = await Promise.race(promisesToRace)
+    } else {
+      if (isPdf) {
+        const data = await window.api.file.readContentFromUrl(url)
+        return {
+          title: data.title,
+          content: data.content,
+          url: data.url
+        }
+      } else {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          },
+          ...httpOptions,
+          signal: httpOptions?.signal
+            ? AbortSignal.any([httpOptions.signal, AbortSignal.timeout(30000)])
+            : AbortSignal.timeout(30000)
+        })
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`)
+        }
+
+        // 使用 arrayBuffer 获取原始数据
+        const buffer = await response.arrayBuffer()
+
+        // 提取编码格式
+        const contentType = response.headers.get('Content-Type') || ''
+        const charsetMatch = contentType.match(/charset=([\w-]+)/i)
+        let encoding = charsetMatch ? charsetMatch[1].toLowerCase() : 'utf-8'
+
+        // 如果未从响应头获取到编码，则尝试从 HTML 中提取
+        const decoder = new TextDecoder('utf-8')
+        let htmlStr = decoder.decode(buffer)
+
+        // 检查 meta 标签中的 charset
+        const metaCharsetMatch = htmlStr.match(/<meta[^>]+charset=["']?([^"'>]+)/i)
+        if (metaCharsetMatch && metaCharsetMatch[1]) {
+          encoding = metaCharsetMatch[1].toLowerCase()
+        }
+
+        // 根据实际编码重新解码
+        if (encoding !== 'utf-8') {
+          const realDecoder = new TextDecoder(encoding, { fatal: true })
+          try {
+            htmlStr = realDecoder.decode(buffer)
+          } catch (e) {
+            console.warn(`Failed to decode using ${encoding}, falling back to UTF-8`)
+            htmlStr = new TextDecoder('utf-8').decode(buffer)
+          }
+        }
+
+        html = htmlStr
+      }
     }
 
-    clearTimeout(timeoutId) // Clear the timeout if fetch completes successfully
+    // clearTimeout(timeoutId) // Clear the timeout if fetch completes successfully
     const parser = new DOMParser()
     const doc = parser.parseFromString(html, 'text/html')
     const article = new Readability(doc).parse()
-    // console.log('Parsed article:', article)
+    // Logger.log('Parsed article:', article)
 
     switch (format) {
       case 'markdown': {
@@ -100,6 +156,10 @@ export async function fetchWebContent(
         }
     }
   } catch (e: unknown) {
+    if (isAbortError(e)) {
+      throw e
+    }
+
     console.error(`Failed to fetch ${url}`, e)
     return {
       title: url,
@@ -109,41 +169,19 @@ export async function fetchWebContent(
   }
 }
 
-export async function fetchWebTitle(url: string): Promise<string> {
+export async function fetchRedirectUrl(url: string) {
   try {
-    const response = await fetch(url, { method: 'HEAD' })
-
-    // 尝试从 Content-Disposition 获取文件名
-    const disposition = response.headers.get('Content-Disposition')
-    if (disposition) {
-      const utf8FilenameRegex = /filename\*=UTF-8''([\w%-.]+)/i
-      const asciiFilenameRegex = /filename="?([^"]+)"?/i
-
-      const utf8Matches = disposition.match(utf8FilenameRegex)
-      if (utf8Matches && utf8Matches[1]) {
-        return decodeURIComponent(utf8Matches[1])
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
-
-      const asciiMatches = disposition.match(asciiFilenameRegex)
-      if (asciiMatches && asciiMatches[1]) {
-        return asciiMatches[1]
-      }
-    }
-
-    // 如果没有从 header 获取到文件名，则从 URL 提取
-    const urlObj = new URL(url)
-    const pathname = urlObj.pathname
-    const filename = pathname.substring(pathname.lastIndexOf('/') + 1)
-
-    // 去除扩展名并美化显示
-    const title = filename
-      .replace(/\.[^/.]+$/, '') // 移除 .pdf
-      .replace(/[-_]/g, ' ') // 替换 - 和 _ 为空格
-      .replace(/\b\w/g, (c) => c.toUpperCase()) // 首字母大写
-
-    return title || url
+    })
+    return response.url
   } catch (e) {
-    console.warn(`Failed to fetch title`, e)
+    console.error(`Failed to fetch redirect url: ${e}`)
     return url
   }
 }

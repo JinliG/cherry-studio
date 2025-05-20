@@ -48,9 +48,6 @@ const PdfReader: React.FC<Props> = (props) => {
   const [showSelect, setShowSelect] = useState(false)
   const [scale, setScale] = useState(1)
   const [pageRefs, setPageRefs] = useState<React.RefObject<HTMLDivElement>[]>([])
-
-  const [filePickerOpen, setFilePickerOpen] = useState(false)
-
   const [noOutline, setNoOutline] = useState(false)
 
   useEffect(() => {
@@ -60,7 +57,7 @@ const PdfReader: React.FC<Props> = (props) => {
   useEffect(() => {
     const loadFile = async () => {
       if (assistant.attachedDocument) {
-        const { data, mime } = await window.api.file.binaryFile(
+        const { data, mime } = await window.api.file.binaryImage(
           assistant.attachedDocument.id + assistant.attachedDocument.ext
         )
         setFile(new File([data], assistant.attachedDocument.name, { type: mime }))
@@ -165,12 +162,11 @@ const PdfReader: React.FC<Props> = (props) => {
                 </Pagination>
                 <Popover
                   arrow={false}
-                  open={filePickerOpen}
-                  trigger={[]}
-                  content={<FilePicker assistant={assistant} onClose={() => setFilePickerOpen(false)} />}
+                  trigger={['click']}
+                  content={<FilePicker assistant={assistant} />}
                   placement="bottomRight"
                   destroyTooltipOnHide>
-                  <OperateButton onClick={() => setFilePickerOpen(!filePickerOpen)} icon={<PanelRight size={16} />} />
+                  <OperateButton icon={<PanelRight size={16} />} />
                 </Popover>
               </Space>
             </Flex>

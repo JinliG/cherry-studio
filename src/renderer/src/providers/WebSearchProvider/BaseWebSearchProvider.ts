@@ -1,16 +1,35 @@
 import { WebSearchState } from '@renderer/store/websearch'
-import { WebSearchProvider, WebSearchResponse } from '@renderer/types'
+import { WebSearchProvider, WebSearchProviderResponse } from '@renderer/types'
 
 export default abstract class BaseWebSearchProvider {
   // @ts-ignore this
   protected provider: WebSearchProvider
+  protected apiHost?: string
   protected apiKey: string
 
   constructor(provider: WebSearchProvider) {
     this.provider = provider
+    this.apiHost = this.getApiHost()
     this.apiKey = this.getApiKey()
   }
-  abstract search(query: string, websearch: WebSearchState, noContent?: boolean): Promise<WebSearchResponse>
+
+  abstract search(
+    query: string,
+    websearch: WebSearchState,
+    httpOptions?: RequestInit,
+    noContent?: boolean
+  ): Promise<WebSearchProviderResponse>
+
+  public getApiHost() {
+    return this.provider.apiHost
+  }
+
+  public defaultHeaders() {
+    return {
+      'HTTP-Referer': 'https://cherry-ai.com',
+      'X-Title': 'Cherry Studio'
+    }
+  }
 
   public getApiKey() {
     const keys = this.provider.apiKey?.split(',').map((key) => key.trim()) || []

@@ -8,13 +8,11 @@ import {
   isMac,
   isWindows
 } from '@renderer/config/constant'
-import { isGrokReasoningModel, isSupportedReasoningEffortModel } from '@renderer/config/models'
 import { codeThemes } from '@renderer/context/SyntaxHighlighterProvider'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { SettingDivider, SettingRow, SettingRowTitle, SettingSubtitle } from '@renderer/pages/settings'
 import AssistantSettingsPopup from '@renderer/pages/settings/AssistantSettings'
-import { getDefaultModel } from '@renderer/services/AssistantService'
 import { useAppDispatch } from '@renderer/store'
 import {
   SendMessageShortcut,
@@ -40,13 +38,22 @@ import {
   setRenderInputMessageAsMarkdown,
   setShowInputEstimatedTokens,
   setShowMessageDivider,
+  setShowPrompt,
+  setShowTranslateConfirm,
   setThoughtAutoCollapse
 } from '@renderer/store/settings'
-import { Assistant, AssistantSettings, CodeStyleVarious, ThemeMode, TranslateLanguageVarious } from '@renderer/types'
+import {
+  Assistant,
+  AssistantSettings,
+  CodeStyleVarious,
+  MathEngine,
+  ThemeMode,
+  TranslateLanguageVarious
+} from '@renderer/types'
 import { modalConfirm } from '@renderer/utils'
-import { Button, Col, InputNumber, Row, Segmented, Select, Slider, Switch, Tooltip } from 'antd'
+import { Button, Col, InputNumber, Row, Select, Slider, Switch, Tooltip } from 'antd'
 import { CircleHelp, RotateCcw, Settings2 } from 'lucide-react'
-import { FC, useCallback, useEffect, useState } from 'react'
+import { FC, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
@@ -64,12 +71,12 @@ const SettingsTab: FC<Props> = (props) => {
   const [maxTokens, setMaxTokens] = useState(assistant?.settings?.maxTokens ?? 0)
   const [fontSizeValue, setFontSizeValue] = useState(fontSize)
   const [streamOutput, setStreamOutput] = useState(assistant?.settings?.streamOutput ?? true)
-  const [reasoningEffort, setReasoningEffort] = useState(assistant?.settings?.reasoning_effort)
   const { t } = useTranslation()
 
   const dispatch = useAppDispatch()
 
   const {
+    showPrompt,
     showMessageDivider,
     messageFont,
     showInputEstimatedTokens,
@@ -93,7 +100,8 @@ const SettingsTab: FC<Props> = (props) => {
     thoughtAutoCollapse,
     messageNavigation,
     enableQuickPanelTriggers,
-    enableBackspaceDeleteModel
+    enableBackspaceDeleteModel,
+    showTranslateConfirm
   } = useSettings()
 
   const onUpdateAssistantSettings = (settings: Partial<AssistantSettings>) => {
@@ -118,17 +126,9 @@ const SettingsTab: FC<Props> = (props) => {
     }
   }
 
-  const onReasoningEffortChange = useCallback(
-    (value?: 'low' | 'medium' | 'high') => {
-      updateAssistantSettings({ reasoning_effort: value })
-    },
-    [updateAssistantSettings]
-  )
-
   const onReset = () => {
     setTemperature(DEFAULT_TEMPERATURE)
     setContextCount(DEFAULT_CONTEXTCOUNT)
-    setReasoningEffort(undefined)
     updateAssistant({
       ...assistant,
       settings: {
@@ -139,7 +139,6 @@ const SettingsTab: FC<Props> = (props) => {
         maxTokens: DEFAULT_MAX_TOKENS,
         streamOutput: true,
         hideMessages: false,
-        reasoning_effort: undefined,
         customParameters: []
       }
     })
@@ -151,29 +150,10 @@ const SettingsTab: FC<Props> = (props) => {
     setEnableMaxTokens(assistant?.settings?.enableMaxTokens ?? false)
     setMaxTokens(assistant?.settings?.maxTokens ?? DEFAULT_MAX_TOKENS)
     setStreamOutput(assistant?.settings?.streamOutput ?? true)
-    setReasoningEffort(assistant?.settings?.reasoning_effort)
   }, [assistant])
 
-  useEffect(() => {
-    // 当是Grok模型时，处理reasoning_effort的设置
-    // For Grok models, only 'low' and 'high' reasoning efforts are supported.
-    // This ensures compatibility with the model's capabilities and avoids unsupported configurations.
-    if (isGrokReasoningModel(assistant?.model || getDefaultModel())) {
-      const currentEffort = assistant?.settings?.reasoning_effort
-      if (!currentEffort || currentEffort === 'low') {
-        setReasoningEffort('low') // Default to 'low' if no effort is set or if it's already 'low'.
-        onReasoningEffortChange('low')
-      } else if (currentEffort === 'medium' || currentEffort === 'high') {
-        setReasoningEffort('high') // Force 'high' for 'medium' or 'high' to simplify the configuration.
-        onReasoningEffortChange('high')
-      }
-    }
-  }, [assistant?.model, assistant?.settings?.reasoning_effort, onReasoningEffortChange])
-
-  const formatSliderTooltip = (value?: number) => {
-    if (value === undefined) return ''
-    return value === 20 ? '∞' : value.toString()
-  }
+  const assistantContextCount = assistant?.settings?.contextCount || 20
+  const maxContextCount = assistantContextCount > 20 ? assistantContextCount : 20
 
   return (
     <Container className="settings-tab">
@@ -221,12 +201,11 @@ const SettingsTab: FC<Props> = (props) => {
           <Col span={24}>
             <Slider
               min={0}
-              max={10}
+              max={maxContextCount}
               onChange={setContextCount}
               onChangeComplete={onContextCountChange}
               value={typeof contextCount === 'number' ? contextCount : 0}
               step={1}
-              tooltip={{ formatter: formatSliderTooltip }}
             />
           </Col>
         </Row>
@@ -285,49 +264,14 @@ const SettingsTab: FC<Props> = (props) => {
             </Col>
           </Row>
         )}
-        {isSupportedReasoningEffortModel(assistant?.model || getDefaultModel()) && (
-          <>
-            <SettingDivider />
-            <Row align="middle">
-              <Label>{t('assistants.settings.reasoning_effort')}</Label>
-              <Tooltip title={t('assistants.settings.reasoning_effort.tip')}>
-                <CircleHelp size={14} color="var(--color-text-2)" />
-              </Tooltip>
-            </Row>
-            <Row align="middle" gutter={10}>
-              <Col span={24}>
-                <SegmentedContainer>
-                  <Segmented
-                    value={reasoningEffort || 'off'}
-                    onChange={(value) => {
-                      const typedValue = value === 'off' ? undefined : (value as 'low' | 'medium' | 'high')
-                      setReasoningEffort(typedValue)
-                      onReasoningEffortChange(typedValue)
-                    }}
-                    options={
-                      isGrokReasoningModel(assistant?.model || getDefaultModel())
-                        ? [
-                            { value: 'low', label: t('assistants.settings.reasoning_effort.low') },
-                            { value: 'high', label: t('assistants.settings.reasoning_effort.high') }
-                          ]
-                        : [
-                            { value: 'low', label: t('assistants.settings.reasoning_effort.low') },
-                            { value: 'medium', label: t('assistants.settings.reasoning_effort.medium') },
-                            { value: 'high', label: t('assistants.settings.reasoning_effort.high') },
-                            { value: 'off', label: t('assistants.settings.reasoning_effort.off') }
-                          ]
-                    }
-                    name="group"
-                    block
-                  />
-                </SegmentedContainer>
-              </Col>
-            </Row>
-          </>
-        )}
       </SettingGroup>
       <SettingGroup>
         <SettingSubtitle style={{ marginTop: 0 }}>{t('settings.messages.title')}</SettingSubtitle>
+        <SettingDivider />
+        <SettingRow>
+          <SettingRowTitleSmall>{t('settings.messages.prompt')}</SettingRowTitleSmall>
+          <Switch size="small" checked={showPrompt} onChange={(checked) => dispatch(setShowPrompt(checked))} />
+        </SettingRow>
         <SettingDivider />
         <SettingRow>
           <SettingRowTitleSmall>{t('settings.messages.divider')}</SettingRowTitleSmall>
@@ -512,11 +456,12 @@ const SettingsTab: FC<Props> = (props) => {
           <SettingRowTitleSmall>{t('settings.messages.math_engine')}</SettingRowTitleSmall>
           <StyledSelect
             value={mathEngine}
-            onChange={(value) => dispatch(setMathEngine(value as 'MathJax' | 'KaTeX'))}
+            onChange={(value) => dispatch(setMathEngine(value as MathEngine))}
             style={{ width: 135 }}
             size="small">
             <Select.Option value="KaTeX">KaTeX</Select.Option>
             <Select.Option value="MathJax">MathJax</Select.Option>
+            <Select.Option value="none">{t('settings.messages.math_engine.none')}</Select.Option>
           </StyledSelect>
         </SettingRow>
         <SettingDivider />
@@ -602,6 +547,15 @@ const SettingsTab: FC<Props> = (props) => {
           </>
         )}
         <SettingRow>
+          <SettingRowTitleSmall>{t('settings.input.show_translate_confirm')}</SettingRowTitleSmall>
+          <Switch
+            size="small"
+            checked={showTranslateConfirm}
+            onChange={(checked) => dispatch(setShowTranslateConfirm(checked))}
+          />
+        </SettingRow>
+        <SettingDivider />
+        <SettingRow>
           <SettingRowTitleSmall>{t('settings.messages.input.enable_quick_triggers')}</SettingRowTitleSmall>
           <Switch
             size="small"
@@ -685,27 +639,6 @@ export const SettingGroup = styled.div<{ theme?: ThemeMode }>`
   margin-top: 0;
   border-radius: 8px;
   margin-bottom: 10px;
-`
-
-// Define the styled component with hover state styling
-const SegmentedContainer = styled.div`
-  margin-top: 5px;
-  .ant-segmented-item {
-    font-size: 12px;
-  }
-  .ant-segmented-item-selected {
-    background-color: var(--color-primary) !important;
-    color: white !important;
-  }
-
-  .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
-    background-color: var(--color-primary-bg) !important;
-    color: var(--color-primary) !important;
-  }
-
-  .ant-segmented-thumb {
-    background-color: var(--color-primary) !important;
-  }
 `
 
 const StyledSelect = styled(Select)`

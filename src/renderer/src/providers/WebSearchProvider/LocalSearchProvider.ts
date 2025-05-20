@@ -1,6 +1,8 @@
 import { nanoid } from '@reduxjs/toolkit'
 import { WebSearchState } from '@renderer/store/websearch'
-import { WebSearchProvider, WebSearchResponse, WebSearchResult } from '@renderer/types'
+import { WebSearchProvider, WebSearchProviderResponse, WebSearchProviderResult } from '@renderer/types'
+import { createAbortPromise } from '@renderer/utils/abortController'
+import { isAbortError } from '@renderer/utils/error'
 import { fetchWebContent, noContent as _noContent } from '@renderer/utils/fetch'
 
 import BaseWebSearchProvider from './BaseWebSearchProvider'
@@ -18,7 +20,12 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
     super(provider)
   }
 
-  public async search(query: string, websearch: WebSearchState, noContent?: boolean): Promise<WebSearchResponse> {
+  public async search(
+    query: string,
+    websearch: WebSearchState,
+    httpOptions?: RequestInit,
+    noContent?: boolean
+  ): Promise<WebSearchProviderResponse> {
     const uid = nanoid()
     try {
       if (!query.trim()) {
@@ -30,7 +37,13 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
 
       const cleanedQuery = query.split('\r\n')[1] ?? query
       const url = this.provider.url.replace('%s', encodeURIComponent(cleanedQuery))
-      const content = await window.api.searchService.openUrlInSearchWindow(uid, url)
+      let content: string = ''
+      const promisesToRace: [Promise<string>] = [window.api.searchService.openUrlInSearchWindow(uid, url)]
+      if (httpOptions?.signal) {
+        const abortPromise = createAbortPromise(httpOptions.signal, promisesToRace[0])
+        promisesToRace.push(abortPromise)
+      }
+      content = await Promise.race(promisesToRace)
 
       // Parse the content to extract URLs and metadata
       const searchItems = this.parseValidUrls(content).slice(0, websearch.maxResults)
@@ -38,19 +51,19 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
       const validItems = searchItems
         .filter((item) => item.url.startsWith('http') || item.url.startsWith('https'))
         .slice(0, websearch.maxResults)
-      // console.log('Valid search items:', validItems)
+      // Logger.log('Valid search items:', validItems)
 
       // Fetch content for each URL concurrently
       if (noContent === true) {
         return {
           query: query,
-          results: validItems as WebSearchResult[]
+          results: validItems as WebSearchProviderResult[]
         }
       }
 
       const fetchPromises = validItems.map(async (item) => {
-        // console.log(`Fetching content for ${item.url}...`)
-        const result = await fetchWebContent(item.url, 'markdown', this.provider.usingBrowser)
+        // Logger.log(`Fetching content for ${item.url}...`)
+        const result = await fetchWebContent(item.url, 'markdown', this.provider.usingBrowser, httpOptions)
         if (websearch.contentLimit && result.content.length > websearch.contentLimit) {
           result.content = result.content.slice(0, websearch.contentLimit) + '...'
         }
@@ -58,13 +71,16 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
       })
 
       // Wait for all fetches to complete
-      const results: WebSearchResult[] = await Promise.all(fetchPromises)
-
+      const results: WebSearchProviderResult[] = await Promise.all(fetchPromises)
+      console.log('--- results', results)
       return {
         query: query,
         results: results.filter((result) => result.content != _noContent)
       }
     } catch (error) {
+      if (isAbortError(error)) {
+        throw error
+      }
       console.error('Local search failed:', error)
       throw new Error(`Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {

@@ -1,20 +1,31 @@
 import { REFERENCE_DOCUMENT_PROMPT, REFERENCE_TEMPLATE_PROMPT } from '@renderer/config/prompts'
+import { useAssistant } from '@renderer/hooks/useAssistant'
 import { fetchChatCompletion } from '@renderer/services/ApiService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
-import { checkRateLimit, getAssistantMessage, getUserMessage } from '@renderer/services/MessagesService'
-import { estimateMessageUsage } from '@renderer/services/TokenService'
-import type { Assistant, InfoMetric, InfoStructure, Message, Topic } from '@renderer/types'
-import { Button, Collapse, CollapseProps, Flex, Space } from 'antd'
-import { forEach, isEmpty, map } from 'lodash'
-import { ChevronsDownUpIcon, ChevronsUpDownIcon, Edit3Icon, Search } from 'lucide-react'
-import React, { useCallback, useMemo, useState } from 'react'
+import { checkRateLimit, getUserMessage } from '@renderer/services/MessagesService'
+import store from '@renderer/store'
+import { upsertManyBlocks } from '@renderer/store/messageBlock'
+import { newMessagesActions } from '@renderer/store/newMessage'
+import type { Assistant, InfoMetric, InfoStructure, Topic } from '@renderer/types'
+import { Chunk, ChunkType } from '@renderer/types/chunk'
+import { Button, Collapse, CollapseProps, Flex, Space, Tooltip } from 'antd'
+import { isEmpty, map, toString } from 'lodash'
+import { ChevronsDownUpIcon, ChevronsUpDownIcon, Edit3Icon, RefreshCcw, Search } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import BarLoader from 'react-spinners/BarLoader'
 import styled from 'styled-components'
 
 const DEFAULT_OPERATION_PROMPT = {
-  EXTRACT_CONTENTS: '根据上下文和网络查询数据，基于信息模板生成内容，返回格式必须为合法 json 且不包含多余内容。',
+  EXTRACT_CONTENTS: `根据上下文和网络查询数据，基于信息模板生成{companyName}企业信息，返回格式必须为合法 json 且不包含多余内容。`,
   REGEN_METRIC_VALUE: '根据新的提示词和上下文，生成该指标值'
+}
+
+const ExtractProgressTextMap = {
+  [ChunkType.EXTERNEL_TOOL_IN_PROGRESS]: '正在联网搜索...',
+  [ChunkType.LLM_RESPONSE_CREATED]: '正在识别信息模板...',
+  [ChunkType.TEXT_DELTA]: '正在生成内容...',
+  [ChunkType.TEXT_COMPLETE]: '完成'
 }
 
 const getStructureMetaDataSource = (json?: string) => {
@@ -28,6 +39,12 @@ const getStructureMetaDataSource = (json?: string) => {
   }
 }
 
+const extractFirstJsonFromMarkdown = (markdown: string): string => {
+  const regex = /```json\s*([\s\S]*?)\s*```/g
+  const matches = [...markdown.matchAll(regex)]
+  return matches[0][1].trim()
+}
+
 interface _Props {
   assistant: Assistant
   topic: Topic
@@ -38,36 +55,87 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
 
   const [expanded, setExpanded] = useState(true)
   const [extracting, setExtracting] = useState(false)
-  const [lastStreamMessage, setLastStreamMessage] = useState<Message>()
-  const [contentSource, setContentSource] = useState('')
+  const [extractProgressText, setExtractProgressText] = useState('')
+  const [hasTempData, setHasTempData] = useState(false)
+
+  const { assistant: currentAssistant, updateAssistant } = useAssistant(assistant.id)
+
+  const { attachedTemplate, attachedDocument, prompt } = currentAssistant
 
   const structureMetaData: InfoStructure = useMemo(
-    () => getStructureMetaDataSource(assistant.attachedTemplate?.structure),
-    [assistant.attachedTemplate]
+    () =>
+      attachedTemplate?.tempData ? attachedTemplate.tempData : getStructureMetaDataSource(attachedTemplate?.structure),
+    [attachedTemplate]
   )
 
-  const allMetrics = useMemo(() => {
-    if (!isEmpty(structureMetaData)) {
-      let list: InfoMetric[] = []
-      forEach(structureMetaData, (object) => {
-        if (Array.isArray(object)) {
-          list = list.concat(object)
-        } else {
-          list = list.concat(object.metrics)
-        }
-      })
+  console.log('--- attachedTemplate?.tempData', attachedTemplate?.tempData)
 
-      return list
+  useEffect(() => {
+    if (!isEmpty(attachedTemplate?.tempData)) {
+      setHasTempData(true)
+    } else {
+      setHasTempData(false)
     }
-    return []
-  }, [structureMetaData]) as InfoMetric[]
+  }, [attachedTemplate?.tempData])
+
+  // const allMetrics = useMemo(() => {
+  //   if (!isEmpty(structureMetaData)) {
+  //     let list: InfoMetric[] = []
+  //     forEach(structureMetaData, (object) => {
+  //       if (Array.isArray(object)) {
+  //         list = list.concat(object)
+  //       } else {
+  //         list = list.concat(object.metrics)
+  //       }
+  //     })
+
+  //     return list
+  //   }
+  //   return []
+  // }, [structureMetaData]) as InfoMetric[]
 
   const getWebSearchContent = (metric?: InfoMetric) => {
-    const entityName = assistant.attachedTemplate?.name
+    const entityName = attachedTemplate?.name
     if (metric) {
       return `${entityName} ${metric.name} ${metric.prompt}`
     } else {
       return `${entityName} 企业基本信息`
+    }
+  }
+
+  const checkResponseText = (text: string) => {
+    try {
+      let jsonStr = text
+      if (text.startsWith('```json')) {
+        jsonStr = extractFirstJsonFromMarkdown(text)
+      }
+      const object = JSON.parse(jsonStr)
+      if (attachedTemplate) {
+        updateAssistant({
+          ...currentAssistant,
+          attachedTemplate: {
+            ...attachedTemplate,
+            tempData: object as InfoStructure
+          }
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      window.modal.error({
+        content: t('返回格式校验错误')
+      })
+    }
+  }
+
+  const clearTemplateTempData = () => {
+    if (attachedTemplate) {
+      updateAssistant({
+        ...currentAssistant,
+        attachedTemplate: {
+          ...attachedTemplate,
+          tempData: undefined
+        }
+      })
     }
   }
 
@@ -77,85 +145,77 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         return
       }
 
-      EventEmitter.emit(EVENT_NAMES.SEND_MESSAGE)
+      // reference file
+      const files = attachedDocument && !attachedDocument.disabled ? [attachedDocument] : []
+      const { message: userMessage, blocks } = getUserMessage({
+        assistant,
+        topic,
+        content: text,
+        files
+      })
 
+      console.log('--- userMessage ---', userMessage, blocks)
+
+      let assistantPrompt = prompt
+      if (!isEmpty(topic.attachedPages)) {
+        const pageContent =
+          topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+        const pagePrompt = REFERENCE_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
+        assistantPrompt = prompt ? `${prompt}\n${pagePrompt}` : pagePrompt
+      }
+
+      const templatePrompt = REFERENCE_TEMPLATE_PROMPT.replace('{company_template}', attachedTemplate?.structure || '')
+      assistantPrompt = prompt ? `${prompt}\n${templatePrompt}` : templatePrompt
+
+      const webSearchContent = getWebSearchContent()
+
+      let blockContent = ''
       try {
-        // Dispatch the sendMessage action with all options
-        const userMessage = getUserMessage({
-          assistant,
-          topic,
-          type: 'text',
-          content: text
+        store.dispatch(newMessagesActions.addMessage({ topicId: topic.id, message: userMessage }))
+        store.dispatch(upsertManyBlocks(blocks))
+
+        setExtracting(true)
+        await fetchChatCompletion({
+          messages: [userMessage],
+          assistant: {
+            ...assistant,
+            prompt: assistantPrompt
+          },
+          webSearchContent,
+          onChunkReceived: (chunk: Chunk) => {
+            const progressText = ExtractProgressTextMap[chunk.type]
+            console.log('--- chunk', chunk)
+            if (progressText) {
+              setExtractProgressText(progressText)
+            }
+            if (chunk.type === ChunkType.TEXT_DELTA) {
+              blockContent += chunk.text
+            }
+
+            if (chunk.type === ChunkType.TEXT_COMPLETE) {
+              setExtracting(false)
+              setExtractProgressText('')
+              checkResponseText(blockContent)
+              // blockId && store.dispatch(updateOneBlock({ id: blockId, changes: { status: MessageBlockStatus.SUCCESS } }))
+              // store.dispatch(
+              //   newMessagesActions.updateMessage({
+              //     topicId,
+              //     messageId: assistantMessage.id,
+              //     updates: { status: AssistantMessageStatus.SUCCESS }
+              //   })
+              // )
+            }
+          }
         })
 
-        // reference file
-        if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
-          userMessage.files = [...(userMessage.files || []), assistant.attachedDocument]
-        }
-
-        let assistantPrompt = assistant.prompt
-        if (!isEmpty(topic.attachedPages)) {
-          const pageContent =
-            topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
-          const pagePrompt = REFERENCE_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
-
-          assistantPrompt = assistant.prompt ? `${assistant.prompt}\n${pagePrompt}` : pagePrompt
-        }
-
-        const templatePrompt = REFERENCE_TEMPLATE_PROMPT.replace(
-          '{company_template}',
-          assistant.attachedTemplate?.structure || ''
-        )
-        assistantPrompt = assistant.prompt ? `${assistant.prompt}\n${templatePrompt}` : templatePrompt
-        userMessage.usage = await estimateMessageUsage(userMessage)
-
-        const webSearchContent = getWebSearchContent()
-
-        try {
-          setExtracting(true)
-          const responseMessage = await fetchChatCompletion({
-            message: {
-              ...getAssistantMessage({ assistant, topic }),
-              askId: userMessage.id,
-              status: 'sending'
-            },
-            messages: [userMessage],
-            assistant: {
-              ...assistant,
-              prompt: assistantPrompt
-            },
-            webSearchContent,
-            onResponse: async (msg) => {
-              const updateMessage = { ...msg, status: msg.status || 'pending', content: msg.content || '' }
-              setLastStreamMessage(updateMessage)
-            }
-          })
-
-          // 处理 responseMessage，例如更新 UI 或保存结果
-          console.log('Model response:', responseMessage)
-
-          // 如果需要展示回复内容，可以手动处理 responseMessage.content
-        } catch (error) {
-          console.error('Model request failed:', error)
-        } finally {
-          setExtracting(false)
-        }
-
-        // dispatch(
-        //   sendMessage(
-        //     userMessage,
-        //     {
-        //       ...assistant,
-        //       prompt: assistantPrompt
-        //     },
-        //     topic,
-        //     {
-        //       webSearchContent
-        //     }
-        //   )
-        // )
+        // 如果需要展示回复内容，可以手动处理 responseMessage.content
       } catch (error) {
-        console.error('Failed to send message:', error)
+        console.error('Model request failed:', error)
+        window.modal.error({
+          content: toString(error)
+        })
+      } finally {
+        setExtracting(false)
       }
     },
     [assistant, topic]
@@ -180,7 +240,15 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
   const getMetaOptions = () => {
     return (
       <Space>
-        <Button size="small" type="text" icon={<Edit3Icon size={16} />} />
+        {hasTempData && (
+          <Tooltip title={t('重新生成该指标')}>
+            <Button size="small" type="text" icon={<RefreshCcw size={16} />} />
+          </Tooltip>
+        )}
+
+        <Tooltip title={t('修改提示词或者生成的内容')}>
+          <Button size="small" type="text" icon={<Edit3Icon size={16} />} />
+        </Tooltip>
       </Space>
     )
   }
@@ -191,17 +259,49 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         <Mask>
           <SearchingContainer>
             <Search size={24} />
-            <SearchingText>{t('message.searching')}</SearchingText>
+            <SearchingText>{extractProgressText}</SearchingText>
             <BarLoader color="#1677ff" />
           </SearchingContainer>
         </Mask>
       )}
       <Header justify="space-between">
-        <div className="title">{assistant.attachedTemplate?.name}</div>
+        <div className="title">{attachedTemplate?.name}</div>
         <Space>
-          <Button size="small" type="primary" onClick={() => extractContent(DEFAULT_OPERATION_PROMPT.EXTRACT_CONTENTS)}>
-            {t('structure_meta.extract')}
-          </Button>
+          {hasTempData && (
+            <>
+              <Button size="small" onClick={clearTemplateTempData}>
+                {t('清空')}
+              </Button>
+              <Tooltip title={t('保存当前内容至企业信息图谱')}>
+                <Button size="small" type="primary">
+                  {t('保存')}
+                </Button>
+              </Tooltip>
+            </>
+          )}
+          <Tooltip title={t('基于当前信息模板生成内容')}>
+            <Button
+              size="small"
+              type="primary"
+              onClick={() =>
+                window.modal.confirm({
+                  content: t('开始提取信息之前会清空当前话题下所有消息记录，是否继续？'),
+                  onOk: () => {
+                    EventEmitter.emit(EVENT_NAMES.CLEAR_MESSAGES, {
+                      ...topic,
+                      noConfirm: true
+                    })
+                    setTimeout(() => {
+                      extractContent(
+                        DEFAULT_OPERATION_PROMPT.EXTRACT_CONTENTS.replace('{companyName}', attachedTemplate?.name || '')
+                      )
+                    }, 500)
+                  }
+                })
+              }>
+              {t('生成')}
+            </Button>
+          </Tooltip>
           <Button
             size="small"
             type="text"
@@ -231,7 +331,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
               ),
               children: item.value ? <ItemView>{item.value}</ItemView> : null,
               extra: getMetaOptions(),
-              showArrow: !!item.value
+              showArrow: false
             }
           })
 
@@ -244,6 +344,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
                 expandIconPosition="right"
                 size="small"
                 collapsible={'icon'}
+                activeKey={hasTempData ? map(items, (_, index) => index) : []}
               />
             </MetaItem>
           )
@@ -289,6 +390,11 @@ const Header = styled(Flex)`
   background-color: var(--color-background);
   width: 100%;
   z-index: 1;
+
+  .title {
+    color: var(--color-text-1);
+    font-weight: 500;
+  }
 `
 
 const SearchingContainer = styled.div`
@@ -318,7 +424,7 @@ const MetaItem = styled.div`
   }
 
   .title {
-    color: var(--color-text-1);
+    color: var(--color-text-2);
     font-weight: 500;
     margin-bottom: 4px;
   }

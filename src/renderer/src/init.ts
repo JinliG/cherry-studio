@@ -2,11 +2,12 @@ import KeyvStorage from '@kangfenmao/keyv-storage'
 
 import { startAutoSync } from './services/BackupService'
 import { startNutstoreAutoSync } from './services/NutstoreService'
+import storeSyncService from './services/StoreSyncService'
 import store from './store'
 
 function initSpinner() {
   const spinner = document.getElementById('spinner')
-  if (spinner && window.location.hash !== '#/mini') {
+  if (spinner) {
     spinner.style.display = 'flex'
   }
 }
@@ -26,9 +27,14 @@ function initAutoSync() {
     if (nutstoreAutoSync) {
       startNutstoreAutoSync()
     }
-  }, 2000)
+  }, 8000)
+}
+
+function initStoreSync() {
+  storeSyncService.subscribe()
 }
 
 initSpinner()
 initKeyv()
 initAutoSync()
+initStoreSync()

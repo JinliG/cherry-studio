@@ -15,13 +15,21 @@ import AssistantMCPSettings from './AssistantMCPSettings'
 import AssistantMessagesSettings from './AssistantMessagesSettings'
 import AssistantModelSettings from './AssistantModelSettings'
 import AssistantPromptSettings from './AssistantPromptSettings'
+import AssistantRegularPromptsSettings from './AssistantRegularPromptsSettings'
 
 interface AssistantSettingPopupShowParams {
   assistant: Assistant
   tab?: AssistantSettingPopupTab
 }
 
-type AssistantSettingPopupTab = 'prompt' | 'model' | 'messages' | 'knowledge_base' | 'mcp' | 'document'
+type AssistantSettingPopupTab =
+  | 'prompt'
+  | 'model'
+  | 'messages'
+  | 'knowledge_base'
+  | 'mcp'
+  | 'regular_phrases'
+  | 'document'
 
 interface Props extends AssistantSettingPopupShowParams {
   resolve: (assistant: Assistant) => void
@@ -78,6 +86,10 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
     {
       key: 'mcp',
       label: t('assistants.settings.mcp')
+    },
+    {
+      key: 'regular_phrases',
+      label: t('assistants.settings.regular_phrases.title', 'Regular Prompts')
     }
   ].filter(Boolean) as { key: string; label: string }[]
 
@@ -90,28 +102,7 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
       afterClose={afterClose}
       footer={null}
       title={assistant.name}
-      /*******************************************
-       * IMPORTANT: The Comment of transitionName is because:
-       *
-       * When in the production mode,
-       * if some of the antd components(like Select or not showing the assistant tab) not loaded beforehand,
-       * the modal will not close properly when using unofficially transitionName(like ant-move-down).
-       *
-       * The resason may be that the antd CSS-in-JS is not loaded the unofficially ant-xxx-xxx motions,
-       * this will cause the modal close process being interrupted.
-       * see antd issue for more details: https://github.com/ant-design/ant-design/issues/29626
-       *
-       * The deeper reason may be that the css/js chunking handle method is different between dev and prod envs
-       * If we want to solve the problem completely, we need to refactor the antd someway.
-       *
-       * The temporary solution is:
-       * 1. not set transitionName (transitionName is no longer supported in antd 5+)
-       * 2. set timeout to execute the modal resolve()
-       * 3. load the other complex antd components(like Select) beforehand
-       *
-       * we take the first solution for now.
-       */
-      // transitionName="ant-move-down"
+      transitionName="animation-move-down"
       styles={{
         content: {
           padding: 0,
@@ -174,6 +165,9 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
               updateAssistant={updateAssistant}
               updateAssistantSettings={updateAssistantSettings}
             />
+          )}
+          {menu === 'regular_phrases' && (
+            <AssistantRegularPromptsSettings assistant={assistant} updateAssistant={updateAssistant} />
           )}
         </Settings>
       </HStack>

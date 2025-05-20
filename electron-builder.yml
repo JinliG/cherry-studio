@@ -56,6 +56,7 @@ nsis:
   buildUniversalInstaller: false
 portable:
   artifactName: ${productName}-${version}-${arch}-portable.${ext}
+  buildUniversalInstaller: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   notarize: false
@@ -75,7 +76,10 @@ linux:
   maintainer: electronjs.org
   category: Utility
   desktop:
-    StartupWMClass: CherryStudio
+    entry:
+      StartupWMClass: CherryStudio
+  mimeTypes:
+    - x-scheme-handler/cherrystudio
 publish:
   provider: generic
   url: https://releases.cherry-ai.com
@@ -86,8 +90,9 @@ afterSign: scripts/notarize.js
 artifactBuildCompleted: scripts/artifact-build-completed.js
 releaseInfo:
   releaseNotes: |
-    修正语言及本地化错误
-    Windows ARM 更新跳转到官网下载
-    改进系统代理处理和初始化逻辑
-    修复 MCP 服务请求头不生效问题
-    移除搜索增强模式
+    重构消息结构，支持不同类型消息按时间顺序显示
+    智能体支持导入和导出
+    快捷面板增加网络搜索引擎选择
+    显示设置增加缩放控制按钮
+    支持添加自定义小程序
+    性能优化和错误修复

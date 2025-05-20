@@ -28,11 +28,16 @@ class FileStorage {
   }
 
   private initStorageDir = (): void => {
-    if (!fs.existsSync(this.storageDir)) {
-      fs.mkdirSync(this.storageDir, { recursive: true })
-    }
-    if (!fs.existsSync(this.tempDir)) {
-      fs.mkdirSync(this.tempDir, { recursive: true })
+    try {
+      if (!fs.existsSync(this.storageDir)) {
+        fs.mkdirSync(this.storageDir, { recursive: true })
+      }
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true })
+      }
+    } catch (error) {
+      logger.error('[FileStorage] Failed to initialize storage directories:', error)
+      throw error
     }
   }
 
@@ -231,6 +236,61 @@ class FileStorage {
     return fs.readFileSync(filePath, 'utf8')
   }
 
+  public readContentFromUrl = async (
+    _: Electron.IpcMainInvokeEvent,
+    url: string
+  ): Promise<{
+    title: string
+    content: string
+    url: string
+  }> => {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // 尝试从Content-Disposition获取文件名
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = 'filename'
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      // 如果URL中有文件名，使用URL中的文件名
+      const urlFilename = url.split('/').pop()?.split('?')[0]
+      if (urlFilename && urlFilename.includes('.')) {
+        filename = urlFilename
+      }
+
+      // 如果文件名没有后缀，根据Content-Type添加后缀
+      if (!filename.includes('.')) {
+        const contentType = response.headers.get('Content-Type')
+        const ext = this.getExtensionFromMimeType(contentType)
+        filename += ext
+      }
+
+      logger.info(`filename: ${filename}`)
+
+      // 将响应内容写入文件
+      const buffer = Buffer.from(await response.arrayBuffer())
+
+      const data = await officeParser.parseOfficeAsync(buffer)
+      return {
+        title: filename,
+        content: data,
+        url
+      }
+    } catch (error) {
+      logger.error('[FileStorage] Download file error:', error)
+      throw error
+    }
+  }
+
   public createTempFile = async (_: Electron.IpcMainInvokeEvent, fileName: string): Promise<string> => {
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true })
@@ -263,7 +323,15 @@ class FileStorage {
     }
   }
 
-  public binaryFile = async (_: Electron.IpcMainInvokeEvent, id: string): Promise<{ data: Buffer; mime: string }> => {
+  public base64File = async (_: Electron.IpcMainInvokeEvent, id: string): Promise<{ data: string; mime: string }> => {
+    const filePath = path.join(this.storageDir, id)
+    const buffer = await fs.promises.readFile(filePath)
+    const base64 = buffer.toString('base64')
+    const mime = `application/${path.extname(filePath).slice(1)}`
+    return { data: base64, mime }
+  }
+
+  public binaryImage = async (_: Electron.IpcMainInvokeEvent, id: string): Promise<{ data: Buffer; mime: string }> => {
     const filePath = path.join(this.storageDir, id)
     const data = await fs.promises.readFile(filePath)
     const mime = `image/${path.extname(filePath).slice(1)}`
@@ -464,6 +532,25 @@ class FileStorage {
       logger.info('[FileStorage] File copied successfully:', { from: sourcePath, to: destPath })
     } catch (error) {
       logger.error('[FileStorage] Copy file failed:', error)
+      throw error
+    }
+  }
+
+  public writeFileWithId = async (_: Electron.IpcMainInvokeEvent, id: string, content: string): Promise<void> => {
+    try {
+      const filePath = path.join(this.storageDir, id)
+      logger.info('[FileStorage] Writing file:', filePath)
+
+      // 确保目录存在
+      if (!fs.existsSync(this.storageDir)) {
+        logger.info('[FileStorage] Creating storage directory:', this.storageDir)
+        fs.mkdirSync(this.storageDir, { recursive: true })
+      }
+
+      await fs.promises.writeFile(filePath, content, 'utf8')
+      logger.info('[FileStorage] File written successfully:', filePath)
+    } catch (error) {
+      logger.error('[FileStorage] Failed to write file:', error)
       throw error
     }
   }

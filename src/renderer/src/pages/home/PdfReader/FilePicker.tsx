@@ -1,20 +1,18 @@
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { Assistant, FileType } from '@renderer/types'
-import { Button, Flex, List } from 'antd'
+import { Flex, List } from 'antd'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { noop } from 'lodash'
-import { X } from 'lucide-react'
 import React from 'react'
 import styled from 'styled-components'
 
 type IProps = {
   assistant: Assistant
-  onClose: () => void
 }
 
 const FilePicker: React.FC<IProps> = (props) => {
-  const { assistant, onClose } = props
+  const { assistant } = props
   const { attachedDocument } = assistant
   const { updateAssistant } = useAssistant(assistant.id)
 
@@ -30,7 +28,7 @@ const FilePicker: React.FC<IProps> = (props) => {
     <Container>
       <Flex className="title" justify="space-between" align="center">
         参考资料
-        <Button type="text" onClick={onClose} icon={<X size={20} color="var(--color-text-2)" />} />
+        {/* <Button type="text" icon={<X size={20} color="var(--color-text-2)" />} /> */}
       </Flex>
 
       <List

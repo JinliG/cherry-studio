@@ -14,6 +14,7 @@ import {
   LinkOutlined
 } from '@ant-design/icons'
 import CustomTag from '@renderer/components/CustomTag'
+import { useAssistant } from '@renderer/hooks/useAssistant'
 import FileManager from '@renderer/services/FileManager'
 import { Assistant, FileType, Topic } from '@renderer/types'
 import { formatFileSize } from '@renderer/utils'
@@ -25,7 +26,6 @@ import styled from 'styled-components'
 
 interface Props {
   assistant: Assistant
-  updateAssistant: (assistant: Assistant) => void
   files: FileType[]
   setFiles: (files: FileType[]) => void
   topic: Topic
@@ -91,18 +91,12 @@ const FileNameRender: FC<{ file: FileType }> = ({ file }) => {
   )
 }
 
-const AttachmentPreview: FC<Props> = ({
-  files,
-  setFiles,
-  topic,
-  setActiveTopic,
-  updateTopic,
-  assistant,
-  updateAssistant
-}) => {
+const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic, assistant }) => {
   const { attachedText, attachedPages } = topic
-  const { attachedDocument } = assistant
+  const { updateAssistant, assistant: currentAssistant } = useAssistant(assistant.id)
   const { t } = useTranslation()
+
+  const { attachedDocument } = currentAssistant
 
   const getFileIcon = (type?: string) => {
     if (!type) return <FileUnknownFilled />
@@ -171,7 +165,7 @@ const AttachmentPreview: FC<Props> = ({
   const onTriggerAttachedDocumentEnabled = () => {
     if (attachedDocument) {
       updateAssistant({
-        ...assistant,
+        ...currentAssistant,
         attachedDocument: {
           ...attachedDocument,
           disabled: !attachedDocument.disabled
