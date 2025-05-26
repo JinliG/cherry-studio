@@ -7,7 +7,7 @@ import { Descriptions } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import html2canvas from 'html2canvas-pro'
 import { JsonData, JsonEditor } from 'json-edit-react'
-import { map } from 'lodash'
+import { isEmpty, map } from 'lodash'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,6 +16,7 @@ import SimpleMarkdown from '../SimpleMarkdown'
 interface Props {
   resolve: (data: CompanyDiagram | null) => void
   id?: string
+  defaultValues?: FieldType
 }
 
 type FieldType = {
@@ -24,7 +25,7 @@ type FieldType = {
   description: string
 }
 
-const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
+const PopupContainer: React.FC<Props> = ({ resolve, id, defaultValues }) => {
   const isEditing = !!id
   const [form] = Form.useForm()
   const { t } = useTranslation()
@@ -33,9 +34,28 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
   const formRef = useRef<FormInstance>(null)
 
   const [open, setOpen] = useState(true)
-  // const [jsonData, setJsonData] = useState({})
   const [infoStructure, setInfoStructure] = useState<InfoStructure>([])
   const [isPreview, setIsPreview] = useState(false) // 新增状态来控制预览模式
+
+  useEffect(() => {
+    if (!isEmpty(defaultValues)) {
+      form.setFieldsValue(defaultValues)
+    }
+  }, [defaultValues])
+
+  useEffect(() => {
+    let jsonData = []
+    try {
+      if (isEditing) {
+        jsonData = JSON.parse(current?.structure)
+      } else if (defaultValues?.structure) {
+        jsonData = JSON.parse(defaultValues.structure)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+    setInfoStructure(jsonData)
+  }, [isEditing, current?.structure, defaultValues])
 
   const onFinish = (values: FieldType) => {
     if (values.name.trim() === '' || values.structure.trim() === '') {
@@ -83,16 +103,6 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
     setIsPreview(checked)
   }
 
-  useEffect(() => {
-    let jsonData = []
-    try {
-      jsonData = JSON.parse(current?.structure)
-    } catch (error) {
-      console.error(error)
-    }
-    setInfoStructure(jsonData)
-  }, [isEditing, current?.structure])
-
   return (
     <Modal
       title={t('company_template.add.title')}
@@ -138,13 +148,8 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
                 {map(infoStructure, (item, index) => {
                   let groupName = ''
                   let list: InfoMetric[] = []
-                  if (Array.isArray(item)) {
-                    groupName = '其他'
-                    list = item
-                  } else {
-                    groupName = item.group
-                    list = item.metrics
-                  }
+                  groupName = item.group
+                  list = item.metrics
 
                   return (
                     <Descriptions.Item key={index}>
@@ -159,7 +164,7 @@ const PopupContainer: React.FC<Props> = ({ resolve, id }) => {
                         column={2}>
                         {list.map((field, index) => (
                           <Descriptions.Item key={index} label={field.name}>
-                            <SimpleMarkdown>{field.value as any}</SimpleMarkdown>
+                            <SimpleMarkdown>{field.content || ''}</SimpleMarkdown>
                           </Descriptions.Item>
                         ))}
                       </Descriptions>
@@ -271,7 +276,7 @@ const PreviewContainer: React.FC<Props> = ({ resolve, id = '' }) => {
                   column={2}>
                   {list.map((field, index) => (
                     <Descriptions.Item key={index} label={field.name}>
-                      <SimpleMarkdown>{field.value as any}</SimpleMarkdown>
+                      <SimpleMarkdown>{field.content || ''}</SimpleMarkdown>
                     </Descriptions.Item>
                   ))}
                 </Descriptions>
@@ -289,10 +294,11 @@ export default class ManageCompanyDiagramPopup {
   static hide() {
     TopView.hide('ManageCompanyDiagramPopup')
   }
-  static show() {
+  static show(defaultValues?: FieldType) {
     return new Promise<CompanyDiagram | null>((resolve) => {
       TopView.show(
         <PopupContainer
+          defaultValues={defaultValues}
           resolve={(v) => {
             resolve(v)
             this.hide()

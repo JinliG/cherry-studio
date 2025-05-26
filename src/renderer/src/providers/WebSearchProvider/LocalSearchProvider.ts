@@ -72,7 +72,7 @@ export default class LocalSearchProvider extends BaseWebSearchProvider {
 
       // Wait for all fetches to complete
       const results: WebSearchProviderResult[] = await Promise.all(fetchPromises)
-      console.log('--- results', results)
+
       return {
         query: query,
         results: results.filter((result) => result.content != _noContent)

@@ -570,7 +570,7 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, activeTopi
       await onPause()
       await delay(1)
     }
-    EventEmitter.emit(EVENT_NAMES.CLEAR_MESSAGES)
+    EventEmitter.emit(EVENT_NAMES.CLEAR_MESSAGES, topic)
   }
 
   const onNewContext = () => {

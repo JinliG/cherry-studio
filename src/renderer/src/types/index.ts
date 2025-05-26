@@ -669,8 +669,10 @@ export interface QuickPhrase {
 // 企业信息模板&图谱
 export interface InfoMetric {
   name: string
+  description?: string
   prompt: string
-  value?: string
+  content?: string
+  id?: string
 }
 
 export interface InfoGroup {
@@ -678,7 +680,7 @@ export interface InfoGroup {
   metrics: InfoMetric[]
 }
 
-export type InfoStructure = (InfoGroup | InfoMetric[])[]
+export type InfoStructure = InfoGroup[]
 
 export interface Citation {
   number: number

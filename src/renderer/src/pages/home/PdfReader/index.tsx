@@ -65,7 +65,7 @@ const PdfReader: React.FC<Props> = (props) => {
     }
 
     loadFile()
-  }, [assistant.attachedDocument])
+  }, [assistant.attachedDocument?.id])
 
   const updateTopicAttachedPages = (newData: AttachedPage[]) => {
     const data = {

@@ -1,13 +1,16 @@
 import { REFERENCE_DOCUMENT_PROMPT, REFERENCE_TEMPLATE_PROMPT } from '@renderer/config/prompts'
 import { useAssistant } from '@renderer/hooks/useAssistant'
+import SimpleMarkdown from '@renderer/pages/investment/SimpleMarkdown'
+import ManageCompanyDiagramPopup from '@renderer/pages/investment/templates/ManageDiagramPopup'
 import { fetchChatCompletion } from '@renderer/services/ApiService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { checkRateLimit, getUserMessage } from '@renderer/services/MessagesService'
-import store from '@renderer/store'
+import store, { useAppDispatch } from '@renderer/store'
 import { upsertManyBlocks } from '@renderer/store/messageBlock'
-import { newMessagesActions } from '@renderer/store/newMessage'
+import { sendMessage } from '@renderer/store/thunk/messageThunk'
 import type { Assistant, InfoMetric, InfoStructure, Topic } from '@renderer/types'
 import { Chunk, ChunkType } from '@renderer/types/chunk'
+import { uuid } from '@renderer/utils'
 import { Button, Collapse, CollapseProps, Flex, Space, Tooltip } from 'antd'
 import { isEmpty, map, toString } from 'lodash'
 import { ChevronsDownUpIcon, ChevronsUpDownIcon, Edit3Icon, RefreshCcw, Search } from 'lucide-react'
@@ -16,9 +19,41 @@ import { useTranslation } from 'react-i18next'
 import BarLoader from 'react-spinners/BarLoader'
 import styled from 'styled-components'
 
-const DEFAULT_OPERATION_PROMPT = {
-  EXTRACT_CONTENTS: `根据上下文和网络查询数据，基于信息模板生成{companyName}企业信息，返回格式必须为合法 json 且不包含多余内容。`,
-  REGEN_METRIC_VALUE: '根据新的提示词和上下文，生成该指标值'
+import Editable from './components/Editable'
+class OperationPrompt {
+  private companyName: string
+
+  constructor(companyName: string) {
+    this.companyName = companyName
+  }
+
+  get EXTRACT_CONTENTS(): string {
+    return `通过参考资料上下文和网络查询数据，基于信息模板生成${this.companyName}企业信息，仅返回JSON对象，不要返回其他文本内容。`
+  }
+
+  getExtractMetricText(name: string, prompt: string): string {
+    return `通过参考资料上下文和网络查询数据：
+Definition:
+指标名：${name}
+指标提示词：${prompt}
+Goals:
+1. 分析${this.companyName}企业相关数据
+2. 根据 Definition 中的提示词，生成企业${name}内容
+3. 使用Markdown格式呈现结果
+OutputFormat:
+- 包含完整数据和计算分析过程
+- 使用合适的Markdown格式（标题、列表、表格等）
+- 不包含任何解释性文字
+- 保持内容的商业专业和客观性，内容语法中不要出现新闻宣传类的字眼
+`
+  }
+}
+
+const getResultContent = (content: string | object) => {
+  if (content && typeof content === 'object') {
+    return toString(content)
+  }
+  return content
 }
 
 const ExtractProgressTextMap = {
@@ -51,24 +86,36 @@ interface _Props {
 }
 const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
   const { t } = useTranslation()
-  // const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch()
+  const { assistant: currentAssistant, updateAssistant } = useAssistant(assistant.id)
+  const { attachedTemplate, attachedDocument, prompt } = currentAssistant
 
   const [expanded, setExpanded] = useState(true)
   const [extracting, setExtracting] = useState(false)
   const [extractProgressText, setExtractProgressText] = useState('')
   const [hasTempData, setHasTempData] = useState(false)
+  const [editingMetric, setEditingMetric] = useState<InfoMetric | null>(null)
 
-  const { assistant: currentAssistant, updateAssistant } = useAssistant(assistant.id)
+  const operationPrompt = useMemo(() => {
+    return new OperationPrompt(attachedTemplate?.name || '')
+  }, [attachedTemplate?.name])
 
-  const { attachedTemplate, attachedDocument, prompt } = currentAssistant
-
-  const structureMetaData: InfoStructure = useMemo(
-    () =>
-      attachedTemplate?.tempData ? attachedTemplate.tempData : getStructureMetaDataSource(attachedTemplate?.structure),
-    [attachedTemplate]
-  )
-
-  console.log('--- attachedTemplate?.tempData', attachedTemplate?.tempData)
+  const structureMetaData: InfoStructure = useMemo(() => {
+    const data = attachedTemplate?.tempData
+      ? attachedTemplate.tempData
+      : getStructureMetaDataSource(attachedTemplate?.structure)
+    return map(data, (group) => {
+      return {
+        ...group,
+        metrics: map(group.metrics, (metric) => {
+          return {
+            ...metric,
+            id: uuid()
+          }
+        })
+      }
+    })
+  }, [attachedTemplate])
 
   useEffect(() => {
     if (!isEmpty(attachedTemplate?.tempData)) {
@@ -78,21 +125,56 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
     }
   }, [attachedTemplate?.tempData])
 
-  // const allMetrics = useMemo(() => {
-  //   if (!isEmpty(structureMetaData)) {
-  //     let list: InfoMetric[] = []
-  //     forEach(structureMetaData, (object) => {
-  //       if (Array.isArray(object)) {
-  //         list = list.concat(object)
-  //       } else {
-  //         list = list.concat(object.metrics)
-  //       }
-  //     })
+  const updateMetricField = useCallback(
+    (groupIndex: number, metricIndex: number) => {
+      try {
+        // 创建结构副本
+        const updatedStructure = [...structureMetaData]
 
-  //     return list
-  //   }
-  //   return []
-  // }, [structureMetaData]) as InfoMetric[]
+        // 更新指定字段
+        updatedStructure[groupIndex].metrics[metricIndex] = {
+          ...updatedStructure[groupIndex].metrics[metricIndex],
+          ...editingMetric
+        }
+
+        // 更新到 attachedTemplate
+        if (attachedTemplate) {
+          // 转换为 JSON 字符串
+          const structureJson = JSON.stringify(updatedStructure, null, 2)
+          updateAssistant({
+            ...currentAssistant,
+            attachedTemplate: attachedTemplate.tempData
+              ? {
+                  ...attachedTemplate,
+                  tempData: updatedStructure
+                }
+              : {
+                  ...attachedTemplate,
+                  structure: structureJson
+                }
+          })
+        }
+      } catch (error) {
+        console.error('Failed to update metric field:', error)
+        window.modal.error({
+          content: t('指标字段更新失败')
+        })
+      }
+    },
+    [structureMetaData, editingMetric, attachedTemplate, updateAssistant, currentAssistant, t]
+  )
+
+  const onChangeEditingMetric = useCallback(
+    (field: keyof InfoMetric, value: string) => {
+      if (editingMetric) {
+        setEditingMetric({
+          ...editingMetric,
+          [field]: value
+        })
+      }
+    },
+    [editingMetric]
+  )
 
   const getWebSearchContent = (metric?: InfoMetric) => {
     const entityName = attachedTemplate?.name
@@ -110,19 +192,45 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         jsonStr = extractFirstJsonFromMarkdown(text)
       }
       const object = JSON.parse(jsonStr)
-      if (attachedTemplate) {
-        updateAssistant({
-          ...currentAssistant,
-          attachedTemplate: {
-            ...attachedTemplate,
-            tempData: object as InfoStructure
+      if (Array.isArray(object) && object.length === structureMetaData.length) {
+        const response = object as InfoStructure
+        const tempData = map(structureMetaData, (item, index) => {
+          const newMetrics = map(item.metrics, (metric, i) => {
+            const responseMetric = response[index]?.metrics[i]
+            if (metric.name === responseMetric?.name) {
+              return {
+                ...metric,
+                ...responseMetric
+              }
+            }
+            return metric
+          })
+          return {
+            ...item,
+            metrics: newMetrics
           }
         })
+        if (attachedTemplate) {
+          updateAssistant({
+            ...currentAssistant,
+            attachedTemplate: {
+              ...attachedTemplate,
+              tempData
+            }
+          })
+        }
+      } else {
+        throw new Error('返回格式校验错误')
       }
     } catch (error) {
       console.error(error)
       window.modal.error({
-        content: t('返回格式校验错误')
+        content: (
+          <div>
+            {t('模型返回格式解析错误，内容为')}
+            <code>{text}</code>
+          </div>
+        )
       })
     }
   }
@@ -135,6 +243,25 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
           ...attachedTemplate,
           tempData: undefined
         }
+      })
+    }
+  }
+
+  const saveTempToCompanyDiagram = () => {
+    if (attachedTemplate?.tempData) {
+      let structure = ''
+      try {
+        structure = JSON.stringify(attachedTemplate.tempData)
+      } catch (error) {
+        window.message.error({
+          content: t('模板数据解析错误')
+        })
+        return
+      }
+      ManageCompanyDiagramPopup.show({
+        name: attachedTemplate.name,
+        structure,
+        description: ''
       })
     }
   }
@@ -154,8 +281,6 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         files
       })
 
-      console.log('--- userMessage ---', userMessage, blocks)
-
       let assistantPrompt = prompt
       if (!isEmpty(topic.attachedPages)) {
         const pageContent =
@@ -171,7 +296,6 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
 
       let blockContent = ''
       try {
-        store.dispatch(newMessagesActions.addMessage({ topicId: topic.id, message: userMessage }))
         store.dispatch(upsertManyBlocks(blocks))
 
         setExtracting(true)
@@ -184,26 +308,19 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
           webSearchContent,
           onChunkReceived: (chunk: Chunk) => {
             const progressText = ExtractProgressTextMap[chunk.type]
-            console.log('--- chunk', chunk)
             if (progressText) {
               setExtractProgressText(progressText)
             }
             if (chunk.type === ChunkType.TEXT_DELTA) {
               blockContent += chunk.text
+            } else {
+              console.log('--- chunk', chunk)
             }
 
             if (chunk.type === ChunkType.TEXT_COMPLETE) {
               setExtracting(false)
               setExtractProgressText('')
               checkResponseText(blockContent)
-              // blockId && store.dispatch(updateOneBlock({ id: blockId, changes: { status: MessageBlockStatus.SUCCESS } }))
-              // store.dispatch(
-              //   newMessagesActions.updateMessage({
-              //     topicId,
-              //     messageId: assistantMessage.id,
-              //     updates: { status: AssistantMessageStatus.SUCCESS }
-              //   })
-              // )
             }
           }
         })
@@ -218,36 +335,80 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         setExtracting(false)
       }
     },
-    [assistant, topic]
+    [assistant, attachedDocument, attachedTemplate?.structure, prompt, topic]
   )
 
-  const itemGroups = useMemo(() => {
-    if (!isEmpty(structureMetaData)) {
-      return structureMetaData.map((object) => {
-        if (Array.isArray(object)) {
-          return {
-            group: null,
-            metrics: object
-          }
-        } else {
-          return object
-        }
-      })
-    }
-    return []
-  }, [structureMetaData])
+  const extractMetricContent = useCallback(
+    async (metric: InfoMetric) => {
+      if (checkRateLimit(assistant)) {
+        return
+      }
 
-  const getMetaOptions = () => {
+      let assistantPrompt = prompt
+      if (!isEmpty(topic.attachedPages)) {
+        const pageContent =
+          topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+        const pagePrompt = REFERENCE_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
+        assistantPrompt = prompt ? `${prompt}\n${pagePrompt}` : pagePrompt
+      }
+      const text = operationPrompt.getExtractMetricText(metric.name, metric.prompt)
+      // reference file
+      const files = attachedDocument && !attachedDocument.disabled ? [attachedDocument] : []
+      const { message: userMessage, blocks } = getUserMessage({
+        assistant,
+        topic,
+        content: text,
+        files
+      })
+
+      await dispatch(
+        sendMessage(
+          userMessage,
+          blocks,
+          {
+            ...assistant,
+            prompt: assistantPrompt
+          },
+          assistant.topics[0].id
+        )
+      )
+    },
+    [assistant, attachedDocument, operationPrompt, topic]
+  )
+
+  const onEditMetric = (metric: InfoMetric, groupId: number, metricIndex: number) => {
+    if (editingMetric && editingMetric.id === metric.id) {
+      updateMetricField(groupId, metricIndex)
+      setEditingMetric(null)
+      return
+    }
+    setEditingMetric(metric)
+  }
+
+  const onGenMetricContent = (metric: InfoMetric) => {
+    extractMetricContent(metric)
+  }
+
+  const getMetaOptions = (metric: InfoMetric, groupId: number, metricIndex: number) => {
     return (
       <Space>
         {hasTempData && (
           <Tooltip title={t('重新生成该指标')}>
-            <Button size="small" type="text" icon={<RefreshCcw size={16} />} />
+            <Button
+              size="small"
+              type="text"
+              icon={<RefreshCcw size={16} onClick={() => onGenMetricContent(metric)} />}
+            />
           </Tooltip>
         )}
 
         <Tooltip title={t('修改提示词或者生成的内容')}>
-          <Button size="small" type="text" icon={<Edit3Icon size={16} />} />
+          <Button
+            size="small"
+            type="text"
+            icon={<Edit3Icon size={16} />}
+            onClick={() => onEditMetric(metric, groupId, metricIndex)}
+          />
         </Tooltip>
       </Space>
     )
@@ -273,7 +434,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
                 {t('清空')}
               </Button>
               <Tooltip title={t('保存当前内容至企业信息图谱')}>
-                <Button size="small" type="primary">
+                <Button size="small" type="primary" onClick={saveTempToCompanyDiagram}>
                   {t('保存')}
                 </Button>
               </Tooltip>
@@ -292,9 +453,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
                       noConfirm: true
                     })
                     setTimeout(() => {
-                      extractContent(
-                        DEFAULT_OPERATION_PROMPT.EXTRACT_CONTENTS.replace('{companyName}', attachedTemplate?.name || '')
-                      )
+                      extractContent(operationPrompt.EXTRACT_CONTENTS)
                     }, 500)
                   }
                 })
@@ -311,33 +470,66 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         </Space>
       </Header>
       <MetaContainer vertical gap={8}>
-        {map(itemGroups, (data) => {
+        {map(structureMetaData, (data, groupIndex) => {
           const items: CollapseProps['items'] = map(data.metrics, (item, index) => {
+            const isEditable = editingMetric?.id === item.id
+            const renderData = isEditable ? (editingMetric as InfoMetric) : item
+
+            const resultContent = getResultContent(renderData.content as any)
+
             return {
               key: index,
               label: (
                 <>
-                  <div>
+                  <Editable
+                    editable={isEditable}
+                    text={renderData.name}
+                    onChange={(value) => onChangeEditingMetric('name', value)}
+                    onPressEnter={() => updateMetricField(groupIndex, index)}>
                     <span>{t('[指标]')}</span>
                     &nbsp;
-                    {item.name}
-                  </div>
-                  <div>
+                    {renderData.name}
+                  </Editable>
+                  {/* {renderData.description && (
+                    <Editable
+                      editable={isEditable}
+                      text={renderData.description}
+                      onChange={(value) => onChangeEditingMetric('description', value)}
+                      onPressEnter={() => updateMetricField(groupIndex, index)}>
+                      <span>{t('[指标介绍]')}</span>
+                      &nbsp;
+                      {renderData.description}
+                    </Editable>
+                  )} */}
+                  <Editable
+                    editable={isEditable}
+                    text={renderData.prompt}
+                    onChange={(value) => onChangeEditingMetric('prompt', value)}
+                    onPressEnter={() => updateMetricField(groupIndex, index)}>
                     <span>{t('[提示词]')}</span>
                     &nbsp;
-                    {item.prompt}
-                  </div>
+                    {renderData.prompt}
+                  </Editable>
                 </>
               ),
-              children: item.value ? <ItemView>{item.value}</ItemView> : null,
-              extra: getMetaOptions(),
+              children: (
+                <Editable
+                  editable={isEditable}
+                  textarea
+                  text={renderData.content || ''}
+                  onChange={(value) => onChangeEditingMetric('content', value)}
+                  onPressEnter={() => updateMetricField(groupIndex, index)}>
+                  <SimpleMarkdown>{resultContent}</SimpleMarkdown>
+                </Editable>
+              ),
+              extra: getMetaOptions(item, groupIndex, index),
               showArrow: false
             }
           })
 
           return (
             <MetaItem>
-              <div className="title">{data.group || '其他'}</div>
+              <div className="title">{data.group}</div>
               <Collapse
                 className="collapse"
                 items={items}
@@ -355,13 +547,16 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
 }
 
 const Container = styled.div<{ $expanded: boolean; $loading: boolean }>`
-  position: relative;
-  margin: 12px 20px;
-  padding: 0 12px 8px;
-  max-height: ${({ $expanded }) => ($expanded ? '300px' : '40px')};
+  position: sticky;
+  top: 0;
+  background-color: var(--color-background);
+  margin: 12px 0;
+  padding: 0 20px 8px;
+  max-height: ${({ $expanded }) => ($expanded ? '240px' : '40px')};
   overflow-y: ${({ $expanded, $loading }) => ($expanded && !$loading ? 'auto' : 'hidden')};
   border-top: 1px solid var(--color-background-mute);
   border-bottom: 1px solid var(--color-background-mute);
+  box-shadow: 0 4px 8px -4px var(--color-background-mute);
   transition: max-height 0.3s ease-in-out;
 `
 
@@ -421,6 +616,10 @@ const MetaItem = styled.div`
 
   .collapse {
     font-size: 12px;
+
+    .ant-collapse-header {
+      background-color: var(--color-background-soft);
+    }
   }
 
   .title {
@@ -429,7 +628,5 @@ const MetaItem = styled.div`
     margin-bottom: 4px;
   }
 `
-
-const ItemView = styled.div``
 
 export default StructureMeta
