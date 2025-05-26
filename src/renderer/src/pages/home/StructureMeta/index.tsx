@@ -8,17 +8,18 @@ import { checkRateLimit, getUserMessage } from '@renderer/services/MessagesServi
 import store, { useAppDispatch } from '@renderer/store'
 import { upsertManyBlocks } from '@renderer/store/messageBlock'
 import { sendMessage } from '@renderer/store/thunk/messageThunk'
-import type { Assistant, InfoMetric, InfoStructure, Topic } from '@renderer/types'
+import type { Assistant, InfoMetric, InfoStructure, Topic, WebSearchProviderResponse } from '@renderer/types'
 import { Chunk, ChunkType } from '@renderer/types/chunk'
 import { uuid } from '@renderer/utils'
 import { Button, Collapse, CollapseProps, Flex, Space, Tooltip } from 'antd'
-import { isEmpty, map, toString } from 'lodash'
+import { isEmpty, map, throttle, toString } from 'lodash'
 import { ChevronsDownUpIcon, ChevronsUpDownIcon, Edit3Icon, RefreshCcw, Search } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import BarLoader from 'react-spinners/BarLoader'
 import styled from 'styled-components'
 
+import CitationsList from '../Messages/CitationsList'
 import Editable from './components/Editable'
 class OperationPrompt {
   private companyName: string
@@ -28,24 +29,27 @@ class OperationPrompt {
   }
 
   get EXTRACT_CONTENTS(): string {
-    return `通过参考资料上下文和网络查询数据，基于信息模板生成${this.companyName}企业信息，仅返回JSON对象，不要返回其他文本内容。`
+    return `基于参考资料和网络查询数据，严格生成符合信息模板的${this.companyName}企业信息。
+Constrains:
+1. 输出必须为纯JSON对象
+2. 禁止包含任何解释性文字、前缀说明
+3. 确保JSON语法正确且可被解析`
   }
 
   getExtractMetricText(name: string, prompt: string): string {
-    return `通过参考资料上下文和网络查询数据：
+    return `基于参考资料和网络查询数据：
 Definition:
 指标名：${name}
 指标提示词：${prompt}
 Goals:
 1. 分析${this.companyName}企业相关数据
-2. 根据 Definition 中的提示词，生成企业${name}内容
+2. 根据 Definition 中的提示词，生成${this.companyName}的${name}
 3. 使用Markdown格式呈现结果
 OutputFormat:
-- 包含完整数据和计算分析过程
 - 使用合适的Markdown格式（标题、列表、表格等）
 - 不包含任何解释性文字
 - 保持内容的商业专业和客观性，内容语法中不要出现新闻宣传类的字眼
-`
+- 如果内容生成需要计算分析，给出完整的数据以及计算分析过程`
   }
 }
 
@@ -87,6 +91,7 @@ interface _Props {
 const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const containerRef = useRef<HTMLDivElement>(null)
   const { assistant: currentAssistant, updateAssistant } = useAssistant(assistant.id)
   const { attachedTemplate, attachedDocument, prompt } = currentAssistant
 
@@ -95,6 +100,47 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
   const [extractProgressText, setExtractProgressText] = useState('')
   const [hasTempData, setHasTempData] = useState(false)
   const [editingMetric, setEditingMetric] = useState<InfoMetric | null>(null)
+  const [isDragging, setIsDragging] = useState<boolean>(false)
+  const [webSearchResult, setWebSearchResult] = useState<WebSearchProviderResponse>()
+
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleMouseMove = throttle((e: MouseEvent) => {
+    if (!isDragging || !containerRef.current) return
+
+    requestAnimationFrame(() => {
+      const newHeight = Math.max(expanded ? 240 : 40, e.clientY)
+      containerRef.current!.style.height = `${newHeight}px`
+    })
+  }, 50)
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  useEffect(() => {
+    if (isDragging) {
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'ns-resize'
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    } else {
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    return () => {
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
 
   const operationPrompt = useMemo(() => {
     return new OperationPrompt(attachedTemplate?.name || '')
@@ -311,6 +357,9 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
             if (progressText) {
               setExtractProgressText(progressText)
             }
+            if (chunk.type === ChunkType.EXTERNEL_TOOL_COMPLETE) {
+              setWebSearchResult(chunk.external_tool.webSearch?.results as WebSearchProviderResponse)
+            }
             if (chunk.type === ChunkType.TEXT_DELTA) {
               blockContent += chunk.text
             } else {
@@ -376,6 +425,20 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
     [assistant, attachedDocument, operationPrompt, topic]
   )
 
+  const citations = useMemo(() => {
+    if (
+      (currentAssistant.enableWebSearch || currentAssistant.webSearchProviderId) &&
+      Array.isArray(webSearchResult?.results)
+    ) {
+      return map(webSearchResult?.results, (item, index) => ({
+        ...item,
+        number: index,
+        showFavicon: true
+      }))
+    }
+    return []
+  }, [webSearchResult, currentAssistant.enableWebSearch, currentAssistant.webSearchProviderId])
+
   const onEditMetric = (metric: InfoMetric, groupId: number, metricIndex: number) => {
     if (editingMetric && editingMetric.id === metric.id) {
       updateMetricField(groupId, metricIndex)
@@ -414,8 +477,10 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
     )
   }
 
+  // console.log('--- web search provider', webSearchResult, citations)
+
   return (
-    <Container $expanded={expanded} $loading={extracting}>
+    <Container ref={containerRef} $expanded={expanded} $loading={extracting}>
       {extracting && (
         <Mask>
           <SearchingContainer>
@@ -426,7 +491,10 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         </Mask>
       )}
       <Header justify="space-between">
-        <div className="title">{attachedTemplate?.name}</div>
+        <Space className="title">
+          {attachedTemplate?.name}
+          {!isEmpty(citations) && <CitationsList citations={citations} />}
+        </Space>
         <Space>
           {hasTempData && (
             <>
@@ -542,6 +610,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
           )
         })}
       </MetaContainer>
+      {expanded && <DragHandle onMouseDown={handleMouseDown} />}
     </Container>
   )
 }
@@ -552,12 +621,31 @@ const Container = styled.div<{ $expanded: boolean; $loading: boolean }>`
   background-color: var(--color-background);
   margin: 12px 0;
   padding: 0 20px 8px;
-  max-height: ${({ $expanded }) => ($expanded ? '240px' : '40px')};
+  height: 240px;
+  max-height: ${({ $expanded }) => ($expanded ? 'fit-content' : '40px')};
   overflow-y: ${({ $expanded, $loading }) => ($expanded && !$loading ? 'auto' : 'hidden')};
   border-top: 1px solid var(--color-background-mute);
   border-bottom: 1px solid var(--color-background-mute);
   box-shadow: 0 4px 8px -4px var(--color-background-mute);
   transition: max-height 0.3s ease-in-out;
+  will-change: height;
+  transform: translateZ(0);
+`
+
+const DragHandle = styled.div`
+  position: sticky;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--color-primary);
+  cursor: ns-resize;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
 `
 
 const Mask = styled.div`
