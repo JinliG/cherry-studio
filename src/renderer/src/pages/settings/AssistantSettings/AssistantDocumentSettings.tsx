@@ -69,8 +69,6 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
 
   const { origin_name, id } = assistant.attachedDocument || {}
   const renderFileList = useCallback(() => {
-    console.log('--- files', files)
-
     return (
       <OverContainer>
         <List

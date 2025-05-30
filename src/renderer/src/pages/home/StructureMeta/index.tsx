@@ -363,7 +363,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
             if (chunk.type === ChunkType.TEXT_DELTA) {
               blockContent += chunk.text
             } else {
-              console.log('--- chunk', chunk)
+              // console.log('--- chunk', chunk)
             }
 
             if (chunk.type === ChunkType.TEXT_COMPLETE) {
