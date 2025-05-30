@@ -44,7 +44,6 @@ Definition:
 Goals:
 1. 分析${this.companyName}企业相关数据
 2. 根据 Definition 中的提示词，生成${this.companyName}的${name}
-3. 使用Markdown格式呈现结果
 OutputFormat:
 - 使用合适的Markdown格式（标题、列表、表格等）
 - 不包含任何解释性文字
