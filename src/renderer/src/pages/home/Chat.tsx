@@ -63,6 +63,8 @@ const Chat: FC<Props> = (props) => {
         }
       }
     }
+
+    return () => {}
   }, [wrapperRef.current])
 
   const pageWidth = useMemo(() => (wrapperWidth ? wrapperWidth * 0.5 - 56 : 0), [wrapperWidth])

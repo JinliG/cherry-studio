@@ -146,7 +146,7 @@ export const initialState: SettingsState = {
   proxyMode: 'system',
   proxyUrl: undefined,
   userName: '',
-  showPrompt: true,
+  showPrompt: false,
   showMessageDivider: true,
   messageFont: 'system',
   showInputEstimatedTokens: false,
