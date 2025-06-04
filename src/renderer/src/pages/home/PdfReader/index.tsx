@@ -43,7 +43,7 @@ const PdfReader: React.FC<Props> = (props) => {
   const [file, setFile] = useState<File | null>(null)
   const [pageTotal, setPageTotal] = useState(0)
   const [pageCurrent, setPageCurrent] = useState(1)
-  const [pageContents, setPageContents] = useState<string[]>([])
+  const [pageContents, setPageContents] = useState<Map<number, string>>(new Map())
   const [showIndex, setShowIndex] = useState(false)
   const [showSelect, setShowSelect] = useState(false)
   const [scale, setScale] = useState(1)
@@ -80,7 +80,7 @@ const PdfReader: React.FC<Props> = (props) => {
     if (checked) {
       updateTopicAttachedPages(filter(attachedPages, (p) => p.index !== page))
     } else {
-      updateTopicAttachedPages([...attachedPages, { index: page, content: pageContents[page - 1] }])
+      updateTopicAttachedPages([...attachedPages, { index: page, content: pageContents.get(page) || '' }])
     }
   }
 
@@ -213,7 +213,12 @@ const PdfReader: React.FC<Props> = (props) => {
                       }
                       return acc + item.str
                     }, ``)
-                    setPageContents((state) => [...state, text])
+                    // 使用 Map 来存储页面内容
+                    setPageContents((prevMap) => {
+                      const newMap = new Map(prevMap)
+                      newMap.set(page, text)
+                      return newMap
+                    })
                   }}>
                   {showSelect && (
                     <Checkbox

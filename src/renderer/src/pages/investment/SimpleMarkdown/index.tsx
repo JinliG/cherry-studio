@@ -1,6 +1,7 @@
 import 'katex/dist/katex.min.css'
 
 import { useSettings } from '@renderer/hooks/useSettings'
+import { convertMathFormula } from '@renderer/utils/markdown'
 import { FC, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
@@ -29,6 +30,15 @@ const SimpleMarkdown: FC<Props> = ({ children }) => {
     return hasElements ? [rehypeRaw, rehypeMath] : [rehypeMath]
   }, [children, rehypeMath])
 
+  const formattedContent = useMemo(() => {
+    try {
+      return convertMathFormula(children)
+    } catch (error) {
+      console.error('Error converting math formula:', error)
+      return children
+    }
+  }, [children])
+
   return (
     <ReactMarkdown
       className="markdown"
@@ -39,7 +49,7 @@ const SimpleMarkdown: FC<Props> = ({ children }) => {
         footnoteLabelTagName: 'h4',
         footnoteBackContent: ' '
       }}>
-      {children}
+      {formattedContent}
     </ReactMarkdown>
   )
 }

@@ -22,7 +22,7 @@ import { Message } from '@renderer/types/newMessage'
 import { isAbortError } from '@renderer/utils/error'
 import { extractInfoFromXML, ExtractResults } from '@renderer/utils/extract'
 import { getKnowledgeBaseIds, getMainTextContent } from '@renderer/utils/messageUtils/find'
-import { findLast, isEmpty } from 'lodash'
+import { findLast, isEmpty, map, set } from 'lodash'
 
 import AiProvider from '../providers/AiProvider'
 import {
@@ -126,6 +126,14 @@ async function fetchExternalTool(
     if (!extractResults?.websearch) {
       console.warn('searchTheWeb called without valid extractResults.websearch')
       return
+    }
+
+    if (Array.isArray(extractResults.websearch)) {
+      set(
+        extractResults,
+        'websearch.question',
+        map(extractResults.websearch, (item) => item.question[0])
+      )
     }
 
     if (extractResults.websearch.question[0] === 'not_needed') return

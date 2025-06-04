@@ -10,6 +10,7 @@ interface EditableProps extends React.PropsWithChildren {
   editable?: boolean
   textarea?: boolean
   onChange?: (value: string) => void
+  onCancel?: () => void
   onPressEnter?: () => void
 }
 
@@ -18,6 +19,7 @@ const Editable: React.FC<EditableProps> = ({
   editable = false,
   textarea = false,
   onPressEnter = noop,
+  onCancel = noop,
   onChange = noop,
   children
 }) => {
@@ -31,6 +33,15 @@ const Editable: React.FC<EditableProps> = ({
       <Flex gap={4} vertical>
         <TextArea autoFocus value={text} onChange={(e) => onChange(e.target.value)} />
         <Space style={{ alignSelf: 'flex-end' }}>
+          <Button
+            size="small"
+            type="link"
+            onClick={onCancel}
+            style={{
+              color: 'var(--color-text-2)'
+            }}>
+            {t('取消')}
+          </Button>
           <Button
             size="small"
             type="link"

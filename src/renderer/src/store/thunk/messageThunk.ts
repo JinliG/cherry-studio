@@ -239,7 +239,8 @@ const fetchAndProcessAssistantResponseImpl = async (
   getState: () => RootState,
   topicId: string,
   assistant: Assistant,
-  assistantMessage: Message // Pass the prepared assistant message (new or reset)
+  assistantMessage: Message, // Pass the prepared assistant message (new or reset)
+  webSearchContent?: string
 ) => {
   const assistantMsgId = assistantMessage.id
   let callbacks: StreamProcessorCallbacks = {}
@@ -661,6 +662,7 @@ const fetchAndProcessAssistantResponseImpl = async (
     await fetchChatCompletion({
       messages: messagesForContext,
       assistant: assistant,
+      webSearchContent: webSearchContent,
       onChunkReceived: streamProcessorCallbacks
     })
   } catch (error: any) {
@@ -680,7 +682,13 @@ const fetchAndProcessAssistantResponseImpl = async (
  * @param topicId 主题ID
  */
 export const sendMessage =
-  (userMessage: Message, userMessageBlocks: MessageBlock[], assistant: Assistant, topicId: Topic['id']) =>
+  (
+    userMessage: Message,
+    userMessageBlocks: MessageBlock[],
+    assistant: Assistant,
+    topicId: Topic['id'],
+    webSearchContent?: string
+  ) =>
   async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
       if (userMessage.blocks.length === 0) {
@@ -707,7 +715,14 @@ export const sendMessage =
         dispatch(newMessagesActions.addMessage({ topicId, message: assistantMessage }))
 
         queue.add(async () => {
-          await fetchAndProcessAssistantResponseImpl(dispatch, getState, topicId, assistant, assistantMessage)
+          await fetchAndProcessAssistantResponseImpl(
+            dispatch,
+            getState,
+            topicId,
+            assistant,
+            assistantMessage,
+            webSearchContent
+          )
         })
       }
     } catch (error) {

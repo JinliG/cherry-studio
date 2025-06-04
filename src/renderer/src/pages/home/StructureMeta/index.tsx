@@ -37,15 +37,11 @@ Constrains:
   }
 
   getExtractMetricText(name: string, prompt: string): string {
-    return `基于参考资料和网络查询数据：
-Definition:
-指标名：${name}
-指标提示词：${prompt}
-Goals:
-1. 分析${this.companyName}企业相关数据
-2. 根据 Definition 中的提示词，生成${this.companyName}的${name}
-OutputFormat:
-- 使用合适的Markdown格式（标题、列表、表格等）
+    return `
+根据提示词：“${prompt}”
+查询并生成 ${this.companyName}的${name}，并遵循以下约束。
+Constrains:
+- 使用合适的Markdown格式
 - 不包含任何解释性文字
 - 保持内容的商业专业和客观性，内容语法中不要出现新闻宣传类的字眼
 - 如果内容生成需要计算分析，给出完整的数据以及计算分析过程`
@@ -209,6 +205,10 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
     [structureMetaData, editingMetric, attachedTemplate, updateAssistant, currentAssistant, t]
   )
 
+  const onCancelEditingMetric = useCallback(() => {
+    setEditingMetric(null)
+  }, [])
+
   const onChangeEditingMetric = useCallback(
     (field: keyof InfoMetric, value: string) => {
       if (editingMetric) {
@@ -224,7 +224,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
   const getWebSearchContent = (metric?: InfoMetric) => {
     const entityName = attachedTemplate?.name
     if (metric) {
-      return `${entityName} ${metric.name} ${metric.prompt}`
+      return `${entityName} ${metric.prompt}`
     } else {
       return `${entityName} 企业基本信息`
     }
@@ -409,6 +409,8 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
         files
       })
 
+      const webSearchContent = getWebSearchContent(metric)
+
       await dispatch(
         sendMessage(
           userMessage,
@@ -417,7 +419,8 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
             ...assistant,
             prompt: assistantPrompt
           },
-          assistant.topics[0].id
+          assistant.topics[0].id,
+          webSearchContent
         )
       )
     },
@@ -549,6 +552,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
               label: (
                 <>
                   <Editable
+                    onCancel={onCancelEditingMetric}
                     editable={isEditable}
                     text={renderData.name}
                     onChange={(value) => onChangeEditingMetric('name', value)}
@@ -559,6 +563,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
                   </Editable>
                   {/* {renderData.description && (
                     <Editable
+                    onCancel={onCancelEditingMetric}
                       editable={isEditable}
                       text={renderData.description}
                       onChange={(value) => onChangeEditingMetric('description', value)}
@@ -569,6 +574,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
                     </Editable>
                   )} */}
                   <Editable
+                    onCancel={onCancelEditingMetric}
                     editable={isEditable}
                     text={renderData.prompt}
                     onChange={(value) => onChangeEditingMetric('prompt', value)}
@@ -581,6 +587,7 @@ const StructureMeta: React.FC<_Props> = ({ assistant, topic }) => {
               ),
               children: (
                 <Editable
+                  onCancel={onCancelEditingMetric}
                   editable={isEditable}
                   textarea
                   text={renderData.content || ''}
@@ -621,7 +628,7 @@ const Container = styled.div<{ $expanded: boolean; $loading: boolean }>`
   margin: 12px 0;
   padding: 0 20px 8px;
   height: 240px;
-  max-height: ${({ $expanded }) => ($expanded ? 'fit-content' : '40px')};
+  max-height: ${({ $expanded }) => ($expanded ? '70vh' : '40px')};
   overflow-y: ${({ $expanded, $loading }) => ($expanded && !$loading ? 'auto' : 'hidden')};
   border-top: 1px solid var(--color-background-mute);
   border-bottom: 1px solid var(--color-background-mute);

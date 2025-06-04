@@ -92,11 +92,10 @@ const FileNameRender: FC<{ file: FileType }> = ({ file }) => {
 }
 
 const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, updateTopic, assistant }) => {
-  const { attachedText, attachedPages } = topic
-  const { updateAssistant, assistant: currentAssistant } = useAssistant(assistant.id)
+  const { updateAssistant } = useAssistant(assistant.id)
   const { t } = useTranslation()
 
-  const { attachedDocument } = currentAssistant
+  const { attachedDocument } = assistant
 
   const getFileIcon = (type?: string) => {
     if (!type) return <FileUnknownFilled />
@@ -153,7 +152,7 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
   const handleRemoveAttachedPage = (index: number) => {
     updateAndSetActiveTopic({
       ...topic,
-      attachedPages: filter(attachedPages, (page) => page.index !== index)
+      attachedPages: filter(topic.attachedPages, (page) => page.index !== index)
     })
   }
 
@@ -163,9 +162,11 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
   }
 
   const onTriggerAttachedDocumentEnabled = () => {
+    const { attachedDocument } = assistant
+
     if (attachedDocument) {
       updateAssistant({
-        ...currentAssistant,
+        ...assistant,
         attachedDocument: {
           ...attachedDocument,
           disabled: !attachedDocument.disabled
@@ -175,6 +176,7 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
   }
 
   const Attachments = useMemo(() => {
+    const { attachedText, attachedPages } = topic
     const attachments: ReactNode[] = []
 
     if (attachedDocument) {
@@ -239,7 +241,7 @@ const AttachmentPreview: FC<Props> = ({ files, setFiles, topic, setActiveTopic, 
     }
 
     return attachments
-  }, [files, attachedDocument, attachedText, attachedPages])
+  }, [assistant, files, topic])
 
   if (isEmpty(Attachments)) {
     return null
