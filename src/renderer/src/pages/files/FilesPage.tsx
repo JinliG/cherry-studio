@@ -11,6 +11,7 @@ import ListItem from '@renderer/components/ListItem'
 import TextEditPopup from '@renderer/components/Popups/TextEditPopup'
 import Logger from '@renderer/config/logger'
 import db from '@renderer/databases'
+import { useDefaultWebSearchProvider } from '@renderer/hooks/useWebSearchProviders'
 import FileManager from '@renderer/services/FileManager'
 import WebSearchService from '@renderer/services/WebSearchService'
 import store from '@renderer/store'
@@ -46,6 +47,8 @@ const _suffix = '下载地址'
 
 const FilesPage: FC = () => {
   const { t } = useTranslation()
+  const { provider: defaultProvider } = useDefaultWebSearchProvider()
+
   const [fileType, setFileType] = useState<string>('document')
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -253,7 +256,7 @@ const FilesPage: FC = () => {
   ]
 
   const onWebSearchDocs = async (search: string) => {
-    const provider = WebSearchService.getWebSearchProvider()
+    const provider = WebSearchService.getWebSearchProvider(defaultProvider?.id)
     const questions = [join([search, _suffix], ' ')]
     setSearching(true)
 
