@@ -12,16 +12,23 @@ import styled from 'styled-components'
 import AssistantDocumentSettings from './AssistantDocumentSettings'
 import AssistantKnowledgeBaseSettings from './AssistantKnowledgeBaseSettings'
 import AssistantMCPSettings from './AssistantMCPSettings'
-import AssistantMessagesSettings from './AssistantMessagesSettings'
 import AssistantModelSettings from './AssistantModelSettings'
 import AssistantPromptSettings from './AssistantPromptSettings'
+import AssistantRegularPromptsSettings from './AssistantRegularPromptsSettings'
 
 interface AssistantSettingPopupShowParams {
   assistant: Assistant
   tab?: AssistantSettingPopupTab
 }
 
-type AssistantSettingPopupTab = 'prompt' | 'model' | 'messages' | 'knowledge_base' | 'mcp' | 'document'
+type AssistantSettingPopupTab =
+  | 'prompt'
+  | 'model'
+  | 'messages'
+  | 'knowledge_base'
+  | 'mcp'
+  | 'regular_phrases'
+  | 'document'
 
 interface Props extends AssistantSettingPopupShowParams {
   resolve: (assistant: Assistant) => void
@@ -64,10 +71,6 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
       label: t('assistants.settings.model')
     },
     {
-      key: 'messages',
-      label: t('assistants.settings.preset_messages')
-    },
-    {
       key: 'document',
       label: t('assistants.settings.document_reader')
     },
@@ -78,6 +81,10 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
     {
       key: 'mcp',
       label: t('assistants.settings.mcp')
+    },
+    {
+      key: 'regular_phrases',
+      label: t('assistants.settings.regular_phrases.title', 'Regular Prompts')
     }
   ].filter(Boolean) as { key: string; label: string }[]
 
@@ -126,13 +133,6 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
               updateAssistantSettings={updateAssistantSettings}
             />
           )}
-          {menu === 'messages' && (
-            <AssistantMessagesSettings
-              assistant={assistant}
-              updateAssistant={updateAssistant}
-              updateAssistantSettings={updateAssistantSettings}
-            />
-          )}
           {menu === 'knowledge_base' && showKnowledgeIcon && (
             <AssistantKnowledgeBaseSettings
               assistant={assistant}
@@ -146,6 +146,9 @@ const AssistantSettingPopupContainer: React.FC<Props> = ({ resolve, tab, ...prop
               updateAssistant={updateAssistant}
               updateAssistantSettings={updateAssistantSettings}
             />
+          )}
+          {menu === 'regular_phrases' && (
+            <AssistantRegularPromptsSettings assistant={assistant} updateAssistant={updateAssistant} />
           )}
           {menu === 'document' && (
             <AssistantDocumentSettings

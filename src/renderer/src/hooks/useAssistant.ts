@@ -15,7 +15,7 @@ import {
   updateTopic,
   updateTopics
 } from '@renderer/store/assistants'
-import { setDefaultModel, setTopicNamingModel, setTranslateModel } from '@renderer/store/llm'
+import { setDefaultModel, setQuickAssistantModel, setTopicNamingModel, setTranslateModel } from '@renderer/store/llm'
 import { Assistant, AssistantSettings, Model, Topic } from '@renderer/types'
 import { useCallback, useMemo } from 'react'
 
@@ -43,13 +43,15 @@ export function useAssistant(id: string) {
   const dispatch = useAppDispatch()
   const { defaultModel } = useDefaultModel()
 
-  const model = assistant?.model ?? assistant?.defaultModel ?? defaultModel
+  const model = useMemo(() => assistant?.model ?? assistant?.defaultModel ?? defaultModel, [assistant, defaultModel])
   if (!model) {
     throw new Error(`Assistant model is not set for assistant with name: ${assistant?.name ?? 'unknown'}`)
   }
 
+  const assistantWithModel = useMemo(() => ({ ...assistant, model }), [assistant, model])
+
   return {
-    assistant: { ...assistant, model },
+    assistant: assistantWithModel,
     model,
     addTopic: (topic: Topic) => dispatch(addTopic({ assistantId: assistant.id, topic })),
     removeTopic: (topic: Topic) => {
@@ -101,15 +103,17 @@ export function useDefaultAssistant() {
 }
 
 export function useDefaultModel() {
-  const { defaultModel, topicNamingModel, translateModel } = useAppSelector((state) => state.llm)
+  const { defaultModel, topicNamingModel, translateModel, quickAssistantModel } = useAppSelector((state) => state.llm)
   const dispatch = useAppDispatch()
 
   return {
     defaultModel,
     topicNamingModel,
     translateModel,
+    quickAssistantModel,
     setDefaultModel: (model: Model) => dispatch(setDefaultModel({ model })),
     setTopicNamingModel: (model: Model) => dispatch(setTopicNamingModel({ model })),
-    setTranslateModel: (model: Model) => dispatch(setTranslateModel({ model }))
+    setTranslateModel: (model: Model) => dispatch(setTranslateModel({ model })),
+    setQuickAssistantModel: (model: Model) => dispatch(setQuickAssistantModel({ model }))
   }
 }

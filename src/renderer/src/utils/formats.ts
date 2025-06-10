@@ -1,7 +1,40 @@
-import { Model } from '@renderer/types'
 import type { Message } from '@renderer/types/newMessage'
 
 import { findImageBlocks, getMainTextContent } from './messageUtils/find'
+
+/**
+ * HTML实体编码辅助函数
+ * @param str 输入字符串
+ * @returns string 编码后的字符串
+ */
+export const encodeHTML = (str: string) => {
+  return str.replace(/[&<>"']/g, (match) => {
+    const entities: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&apos;'
+    }
+    return entities[match]
+  })
+}
+
+/**
+ * 清理Markdown内容
+ * @param text 要清理的文本
+ * @returns 清理后的文本
+ */
+export function cleanMarkdownContent(text: string): string {
+  if (!text) return ''
+  let cleaned = text.replace(/!\[.*?]\(.*?\)/g, '') // 移除图片
+  cleaned = cleaned.replace(/\[(.*?)]\(.*?\)/g, '$1') // 替换链接为纯文本
+  cleaned = cleaned.replace(/https?:\/\/\S+/g, '') // 移除URL
+  cleaned = cleaned.replace(/[-—–_=+]{3,}/g, ' ') // 替换分隔符为空格
+  cleaned = cleaned.replace(/[￥$€£¥%@#&*^()[\]{}<>~`'"\\|/_.]+/g, '') // 移除特殊字符
+  cleaned = cleaned.replace(/\s+/g, ' ').trim() // 规范化空白
+  return cleaned
+}
 
 export function escapeDollarNumber(text: string) {
   let escapedText = ''
@@ -21,7 +54,7 @@ export function escapeDollarNumber(text: string) {
 }
 
 export function escapeBrackets(text: string) {
-  const pattern = /(```[\s\S]*?```|`.*?`)|\\\[([\s\S]*?[^\\])\\\]|\\\((.*?)\\\)/g
+  const pattern = /(```[\s\S]*?```|`.*?`)|\\\[([\s\S]*?[^\\])\\]|\\\((.*?)\\\)/g
   return text.replace(pattern, (match, codeBlock, squareBracket, roundBracket) => {
     if (codeBlock) {
       return codeBlock
@@ -39,6 +72,8 @@ $$
 }
 
 export function extractTitle(html: string): string | null {
+  if (!html) return null
+
   // 处理标准闭合的标题标签
   const titleRegex = /<title>(.*?)<\/title>/i
   const match = html.match(titleRegex)
@@ -99,80 +134,11 @@ export function removeSvgEmptyLines(text: string): string {
 //   return content
 // }
 
-export interface ThoughtProcessor {
-  canProcess: (content: string, model?: Model) => boolean
-  process: (content: string) => { reasoning: string; content: string }
-}
-
-export const glmZeroPreviewProcessor: ThoughtProcessor = {
-  canProcess: (content: string, model?: Model) => {
-    if (!model) return false
-
-    const modelId = model.id || ''
-    const modelName = model.name || ''
-    const isGLMZeroPreview =
-      modelId.toLowerCase().includes('glm-zero-preview') || modelName.toLowerCase().includes('glm-zero-preview')
-
-    return isGLMZeroPreview && content.includes('###Thinking')
-  },
-  process: (content: string) => {
-    const parts = content.split('###')
-    const thinkingMatch = parts.find((part) => part.trim().startsWith('Thinking'))
-    const responseMatch = parts.find((part) => part.trim().startsWith('Response'))
-
-    return {
-      reasoning: thinkingMatch ? thinkingMatch.replace('Thinking', '').trim() : '',
-      content: responseMatch ? responseMatch.replace('Response', '').trim() : ''
-    }
-  }
-}
-
-export const thinkTagProcessor: ThoughtProcessor = {
-  canProcess: (content: string, model?: Model) => {
-    if (!model) return false
-
-    return content.startsWith('<think>') || content.includes('</think>')
-  },
-  process: (content: string) => {
-    // 处理正常闭合的 think 标签
-    const thinkPattern = /^<think>(.*?)<\/think>/s
-    const matches = content.match(thinkPattern)
-    if (matches) {
-      return {
-        reasoning: matches[1].trim(),
-        content: content.replace(thinkPattern, '').trim()
-      }
-    }
-
-    // 处理只有结束标签的情况
-    if (content.includes('</think>') && !content.startsWith('<think>')) {
-      const parts = content.split('</think>')
-      return {
-        reasoning: parts[0].trim(),
-        content: parts.slice(1).join('</think>').trim()
-      }
-    }
-
-    // 处理只有开始标签的情况
-    if (content.startsWith('<think>')) {
-      return {
-        reasoning: content.slice(7).trim(), // 跳过 '<think>' 标签
-        content: ''
-      }
-    }
-
-    return {
-      reasoning: '',
-      content
-    }
-  }
-}
-
 export function withGenerateImage(message: Message): { content: string; images?: string[] } {
   const originalContent = getMainTextContent(message)
   const imagePattern = new RegExp(`!\\[[^\\]]*\\]\\((.*?)\\s*("(?:.*[^"])")?\\s*\\)`)
   const images: string[] = []
-  let processedContent = originalContent
+  let processedContent: string
 
   processedContent = originalContent.replace(imagePattern, (_, url) => {
     if (url) {
@@ -212,4 +178,13 @@ export function addImageFileToContents(messages: Message[]) {
   }
 
   return messages.map((message) => (message.id === lastAssistantMessage.id ? updatedAssistantMessage : message))
+}
+
+export function formatQuotedText(text: string) {
+  return (
+    text
+      .split('\n')
+      .map((line) => `> ${line}`)
+      .join('\n') + '\n-------------'
+  )
 }
