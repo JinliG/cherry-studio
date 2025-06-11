@@ -1,22 +1,18 @@
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
-import {
-  InsertRowLeftOutlined,
-  InsertRowRightOutlined,
-  SelectOutlined,
-  UnorderedListOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined
-} from '@ant-design/icons'
+import { SelectOutlined, UnorderedListOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { Assistant, AttachedPage, Topic } from '@renderer/types'
-import { Button, Checkbox, Empty, Flex, InputNumber, Space, Spin } from 'antd'
+import { Button, Checkbox, Empty, Flex, InputNumber, Popover, Space, Spin } from 'antd'
 import { debounce, filter, find } from 'lodash'
+import { PanelRight } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Document, Outline, Page, pdfjs } from 'react-pdf'
 import styled from 'styled-components'
+
+import FilePicker from './FilePicker'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = {
@@ -34,14 +30,11 @@ interface Props {
   assistant: Assistant
   topic: Topic
   pageWidth: number
-  readerLayout: 'left' | 'right'
   setActiveTopic: (topic: Topic) => void
-  setReaderLayout: (layout: 'left' | 'right') => void
 }
 
-let observer: IntersectionObserver | null
 const PdfReader: React.FC<Props> = (props) => {
-  const { topic, pageWidth, assistant, readerLayout = 'left', setActiveTopic, setReaderLayout } = props
+  const { topic, pageWidth, assistant, setActiveTopic } = props
   const { attachedPages = [] } = topic
 
   const { t } = useTranslation()
@@ -50,52 +43,16 @@ const PdfReader: React.FC<Props> = (props) => {
   const [file, setFile] = useState<File | null>(null)
   const [pageTotal, setPageTotal] = useState(0)
   const [pageCurrent, setPageCurrent] = useState(1)
-  const [pageContents, setPageContents] = useState<string[]>([])
+  const [pageContents, setPageContents] = useState<Map<number, string>>(new Map())
   const [showIndex, setShowIndex] = useState(false)
   const [showSelect, setShowSelect] = useState(false)
   const [scale, setScale] = useState(1)
   const [pageRefs, setPageRefs] = useState<React.RefObject<HTMLDivElement>[]>([])
-
   const [noOutline, setNoOutline] = useState(false)
 
   useEffect(() => {
     setPageRefs(Array.from({ length: pageTotal }, () => React.createRef<any>()))
   }, [pageTotal])
-
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 1
-    }
-
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const page = parseInt(entry.target.id.split('_')[1], 10)
-          setPageCurrent(page)
-        }
-      })
-    }
-
-    // 只有当 observer 尚未初始化时才创建
-    if (!observer) {
-      observer = new IntersectionObserver(handleIntersection, observerOptions)
-    }
-
-    // 观察所有页面引用
-    pageRefs.forEach((ref) => {
-      if (ref.current) {
-        observer?.observe(ref.current)
-      }
-    })
-
-    return () => {
-      // 清理操作时断开 observer
-      observer?.disconnect()
-      observer = null
-    }
-  }, [pageRefs, pageWidth])
 
   useEffect(() => {
     const loadFile = async () => {
@@ -108,7 +65,7 @@ const PdfReader: React.FC<Props> = (props) => {
     }
 
     loadFile()
-  }, [assistant.attachedDocument])
+  }, [assistant.attachedDocument?.id])
 
   const updateTopicAttachedPages = (newData: AttachedPage[]) => {
     const data = {
@@ -123,7 +80,7 @@ const PdfReader: React.FC<Props> = (props) => {
     if (checked) {
       updateTopicAttachedPages(filter(attachedPages, (p) => p.index !== page))
     } else {
-      updateTopicAttachedPages([...attachedPages, { index: page, content: pageContents[page - 1] }])
+      updateTopicAttachedPages([...attachedPages, { index: page, content: pageContents.get(page) || '' }])
     }
   }
 
@@ -144,11 +101,11 @@ const PdfReader: React.FC<Props> = (props) => {
 
   const onZoomIn = debounce(() => {
     setScale(scale + 0.2)
-  }, 100)
+  }, 200)
 
   const onZoomOut = debounce(() => {
     setScale(scale - 0.2)
-  }, 100)
+  }, 200)
 
   const onLoadSuccess = (pdf: any) => {
     setPageTotal(pdf.numPages)
@@ -192,6 +149,7 @@ const PdfReader: React.FC<Props> = (props) => {
                     min={1}
                     max={pageTotal}
                     className="page-input"
+                    defaultValue={1}
                     value={pageCurrent}
                     onChange={(num) => {
                       setPageCurrent(num || 1)
@@ -202,10 +160,14 @@ const PdfReader: React.FC<Props> = (props) => {
                   />
                   /<span className="page-total">{pageTotal}</span>
                 </Pagination>
-                <OperateButton
-                  icon={readerLayout === 'left' ? <InsertRowRightOutlined /> : <InsertRowLeftOutlined />}
-                  onClick={() => setReaderLayout(readerLayout === 'left' ? 'right' : 'left')}
-                />
+                <Popover
+                  arrow={false}
+                  trigger={['click']}
+                  content={<FilePicker assistant={assistant} />}
+                  placement="bottomRight"
+                  destroyTooltipOnHide>
+                  <OperateButton icon={<PanelRight size={16} />} />
+                </Popover>
               </Space>
             </Flex>
             <OutlineWrapper className={showIndex ? 'visible' : ''}>
@@ -225,7 +187,7 @@ const PdfReader: React.FC<Props> = (props) => {
               {noOutline && (
                 <Empty
                   className="outline-empty"
-                  description={t('document_reader.outline.empty')}
+                  description={t('reader.outlineEmpty')}
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
               )}
@@ -251,7 +213,12 @@ const PdfReader: React.FC<Props> = (props) => {
                       }
                       return acc + item.str
                     }, ``)
-                    setPageContents((state) => [...state, text])
+                    // 使用 Map 来存储页面内容
+                    setPageContents((prevMap) => {
+                      const newMap = new Map(prevMap)
+                      newMap.set(page, text)
+                      return newMap
+                    })
                   }}>
                   {showSelect && (
                     <Checkbox
@@ -351,6 +318,7 @@ const OutlineWrapper = styled.div`
   transition: width 0.2s ease-in-out;
 
   &.visible {
+    padding-top: 20px;
     height: 240px;
   }
 

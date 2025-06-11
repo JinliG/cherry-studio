@@ -111,7 +111,13 @@
         "settings": {
           "title": "Настройки тегов"
         }
-      }
+      },
+      "settings.reader": "[to be translated]:阅读器设置",
+      "settings.reader.reference": "[to be translated]:选择参考资料",
+      "settings.reader.upload": "[to be translated]:点击选择",
+      "settings.reader.reupload": "[to be translated]:重新上传",
+      "settings.reader.pickFromFiles": "[to be translated]:从文件中选择",
+      "settings.reader.pickFromFiles.confirm": "[to be translated]:确认选择该文档吗？"
     },
     "auth": {
       "error": "Автоматический получение ключа API не удалось, пожалуйста, получите ключ вручную",
@@ -1866,14 +1872,6 @@
       "show_window": "Показать окно",
       "visualization": "Визуализация"
     },
-    "document_reader": {
-      "index": "[to be translated]:目录",
-      "checked": "[to be translated]:已选择",
-      "unchecked": "[to be translated]:点击关联当前页",
-      "attaching": "[to be translated]:正在关联 ",
-      "page_num": "[to be translated]:第{{index}}",
-      "outline.empty": "[to be translated]:无可读目录"
-    },
     "update": {
       "title": "Обновление",
       "message": "Новая версия {{version}} готова, установить сейчас?",
@@ -2042,6 +2040,13 @@
           "user_tips": "Введите имя исполняемого файла приложения, один на строку, не учитывая регистр, можно использовать подстановку *"
         }
       }
+    },
+    "reader": {
+      "outlineEmpty": "[to be translated]:无可读目录",
+      "reference": "[to be translated]:参考资料",
+      "close": "[to be translated]:关闭阅读器",
+      "attaching": "[to be translated]:正在关联",
+      "pageIndex": "[to be translated]:第{{index}}页"
     }
   }
 }

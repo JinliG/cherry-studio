@@ -15,9 +15,9 @@ import {
 } from '@ant-design/icons'
 import CustomTag from '@renderer/components/CustomTag'
 import FileManager from '@renderer/services/FileManager'
-import { Assistant, FileType, Topic } from '@renderer/types'
+import { Assistant, AttachedPage, FileType, Topic } from '@renderer/types'
 import { formatFileSize } from '@renderer/utils'
-import { Flex, Image, Radio, Tag, Tooltip } from 'antd'
+import { Flex, Image, Radio, Space, Tag, Tooltip } from 'antd'
 import { filter, isEmpty, map } from 'lodash'
 import { FC, ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -148,7 +148,6 @@ const AttachmentPreview: FC<Props> = ({
   assistant,
   updateAssistant
 }) => {
-  const { attachedText, attachedPages } = topic
   const { attachedDocument } = assistant
   const { t } = useTranslation()
 
@@ -156,10 +155,10 @@ const AttachmentPreview: FC<Props> = ({
     updateAndSetActiveTopic({ ...topic, attachedText: undefined })
   }
 
-  const handleRemoveAttachedPage = (index: number) => {
+  const handleRemoveAttachedPage = (index: number, pages: AttachedPage[]) => {
     updateAndSetActiveTopic({
       ...topic,
-      attachedPages: filter(attachedPages, (page) => page.index !== index)
+      attachedPages: filter(pages, (page) => page.index !== index)
     })
   }
 
@@ -169,6 +168,7 @@ const AttachmentPreview: FC<Props> = ({
   }
 
   const onTriggerAttachedDocumentEnabled = () => {
+    const { attachedDocument } = assistant
     if (attachedDocument) {
       updateAssistant({
         ...assistant,
@@ -181,36 +181,22 @@ const AttachmentPreview: FC<Props> = ({
   }
 
   const Attachments = useMemo(() => {
+    const { attachedText, attachedPages } = topic
     const attachments: ReactNode[] = []
 
     if (attachedDocument) {
       attachments.push(
-        <RadioButton
-          key="attachedDocument"
-          checked={!attachedDocument.disabled}
-          onClick={onTriggerAttachedDocumentEnabled}>
-          {!attachedDocument.disabled && t('document_reader.attaching')}
-          {attachedDocument?.origin_name}
-        </RadioButton>
-      )
-    }
-
-    if (!isEmpty(attachedPages)) {
-      attachments.push(
-        <div key="attachedPages" className="attach-list">
-          {map(attachedPages, ({ index }) => (
-            <Tag
-              key={index}
-              closable
-              color="green"
-              onClose={(e) => {
-                e.preventDefault()
-                handleRemoveAttachedPage(index)
-              }}>
-              {t('document_reader.page_num', { index })}
-            </Tag>
-          ))}
-        </div>
+        <Space>
+          {attachedDocument && (
+            <RadioButton
+              key="attachedDocument"
+              checked={!attachedDocument.disabled}
+              onClick={onTriggerAttachedDocumentEnabled}>
+              {!attachedDocument.disabled && t('reading.attaching')}&nbsp;
+              {attachedDocument?.origin_name}
+            </RadioButton>
+          )}
+        </Space>
       )
     }
 
@@ -240,8 +226,27 @@ const AttachmentPreview: FC<Props> = ({
       )
     }
 
+    if (!isEmpty(attachedPages)) {
+      attachments.push(
+        <div key="attachedPages" className="attach-list">
+          {map(attachedPages, ({ index }) => (
+            <Tag
+              key={index}
+              closable
+              color="green"
+              onClose={(e) => {
+                e.preventDefault()
+                handleRemoveAttachedPage(index, attachedPages || [])
+              }}>
+              {t('reader.pageIndex', { index })}
+            </Tag>
+          ))}
+        </div>
+      )
+    }
+
     return attachments
-  }, [files, attachedDocument, attachedText, attachedPages])
+  }, [assistant, files, topic])
 
   if (isEmpty(Attachments)) {
     return null
@@ -292,7 +297,6 @@ const RadioButton = styled(Radio.Button)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 8px;
   opacity: 0.6;
   &.ant-radio-button-wrapper-checked {
     opacity: 1;

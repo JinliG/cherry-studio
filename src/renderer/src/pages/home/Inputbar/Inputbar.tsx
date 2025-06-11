@@ -9,7 +9,7 @@ import {
   isVisionModel,
   isWebSearchModel
 } from '@renderer/config/models'
-import { ATTACHED_DOCUMENT_PROMPT } from '@renderer/config/prompts'
+import { REFERENCE_DOCUMENT_PROMPT } from '@renderer/config/prompts'
 import db from '@renderer/databases'
 import { useAssistant } from '@renderer/hooks/useAssistant'
 import { useKnowledgeBases } from '@renderer/hooks/useKnowledge'
@@ -175,6 +175,20 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
       if (uploadedFiles) {
         baseUserMessage.files = uploadedFiles
       }
+
+      // reference file
+      if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
+        baseUserMessage.files = [...(baseUserMessage.files || []), assistant.attachedDocument]
+      }
+
+      if (!isEmpty(topic.attachedPages)) {
+        const pageContent =
+          topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
+        const pagePrompt = REFERENCE_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
+
+        assistant.prompt = assistant.prompt ? `${assistant.prompt}\n${pagePrompt}` : pagePrompt
+      }
+
       const knowledgeBaseIds = selectedKnowledgeBases?.map((base) => base.id)
 
       if (knowledgeBaseIds) {
@@ -183,23 +197,6 @@ const Inputbar: FC<Props> = ({ assistant: _assistant, setActiveTopic, topic }) =
 
       if (mentionModels) {
         baseUserMessage.mentions = mentionModels
-      }
-
-      // add page content context
-      if (!isEmpty(topic.attachedPages)) {
-        const pageContent =
-          topic.attachedPages?.reduce((acc, page) => acc + `\r\nIndex${page.index}: ${page.content}`, '') || ''
-        const pagePrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', pageContent)
-        assistant.prompt = assistant.prompt ? `${assistant.prompt}\n${pagePrompt}` : pagePrompt
-      }
-
-      // add file content context
-      if (assistant.attachedDocument && !assistant.attachedDocument.disabled) {
-        const documentContent = await (
-          await window.api.file.read(assistant.attachedDocument?.id + assistant.attachedDocument?.ext)
-        ).trim()
-        const documentPrompt = ATTACHED_DOCUMENT_PROMPT.replace('{document_content}', documentContent)
-        assistant.prompt = assistant.prompt ? `${assistant.prompt}\n${documentPrompt}` : documentContent
       }
 
       if (!isEmpty(assistant.mcpServers) && !isEmpty(activedMcpServers)) {
