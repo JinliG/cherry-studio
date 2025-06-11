@@ -47,7 +47,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
   const onSelectFile = (file: FileType) => {
     window.modal.confirm({
       centered: true,
-      content: t('settings.reader.pickFromFiles.confirm'),
+      content: t('assistants.settings.reader.pickFromFiles.confirm'),
       onOk: () => {
         updateAssistant({ ...assistant, attachedDocument: file })
         setShowAssistants(false)
@@ -80,7 +80,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
     <Container>
       <Row>
         <Box mb={8} style={{ fontWeight: 'bold' }}>
-          {t('settings.reader.reference')}
+          {t('assistants.settings.reader.reference')}
         </Box>
         {assistant.attachedDocument ? (
           <>
@@ -89,7 +89,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
                 style={{
                   marginRight: 16
                 }}>{`${origin_name} / ${formatFileSize(assistant.attachedDocument.size)}`}</span>
-              <Tooltip title={t('settings.reader.reupload')}>
+              <Tooltip title={t('assistants.settings.reader.reupload')}>
                 <Button type="text" icon={<UploadOutlined />} onClick={onUploadFile} />
               </Tooltip>
               <Popover
@@ -98,7 +98,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
                 content={renderFileList()}
                 placement="bottomRight"
                 destroyTooltipOnHide>
-                <Tooltip title={t('settings.reader.pickFromFiles')}>
+                <Tooltip title={t('assistants.settings.reader.pickFromFiles')}>
                   <Button type="text" icon={<DiffOutlined />} />
                 </Tooltip>
               </Popover>
@@ -114,7 +114,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
         ) : (
           <Space>
             <Button icon={<SnippetsOutlined />} onClick={onUploadFile}>
-              {t('settings.reader.upload')}
+              {t('assistants.settings.reader.upload')}
             </Button>
             <Popover
               arrow={false}
@@ -122,7 +122,7 @@ const AssistantDocumentSettings: React.FC<Props> = ({ assistant, updateAssistant
               content={renderFileList()}
               placement="bottomRight"
               destroyTooltipOnHide>
-              <Button>{t('settings.reader.pickFromFiles')}</Button>
+              <Button>{t('assistants.settings.reader.pickFromFiles')}</Button>
             </Popover>
           </Space>
         )}
