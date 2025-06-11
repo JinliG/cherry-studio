@@ -192,7 +192,7 @@ const AttachmentPreview: FC<Props> = ({
               key="attachedDocument"
               checked={!attachedDocument.disabled}
               onClick={onTriggerAttachedDocumentEnabled}>
-              {!attachedDocument.disabled && t('reading.attaching')}&nbsp;
+              {!attachedDocument.disabled && t('reader.attaching')}&nbsp;
               {attachedDocument?.origin_name}
             </RadioButton>
           )}
