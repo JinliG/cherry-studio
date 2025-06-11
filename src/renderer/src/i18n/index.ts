@@ -27,7 +27,6 @@ const resources = {
 }
 
 export const getLanguage = () => {
-  console.log('--- xxx', localStorage.getItem('language') || navigator.language || defaultLanguage)
   return localStorage.getItem('language') || navigator.language || defaultLanguage
 }
 
